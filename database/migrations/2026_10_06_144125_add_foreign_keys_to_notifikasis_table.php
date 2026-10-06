@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('klaims', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::table('notifikasis', function (Blueprint $table) {
+            $table->foreign(['user_id'])->references(['id'])->on('users')->onUpdate('no action')->onDelete('cascade');
         });
     }
 
@@ -22,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('klaims');
+        Schema::table('notifikasis', function (Blueprint $table) {
+            $table->dropForeign('notifikasis_user_id_foreign');
+        });
     }
 };

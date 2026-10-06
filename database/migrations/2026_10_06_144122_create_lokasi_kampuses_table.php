@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('kategori_barangs', function (Blueprint $table) {
-            $table->id();
+        Schema::create('lokasi_kampuses', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('nama');
+            $table->string('kode')->nullable();
+            $table->enum('area', ['utara', 'selatan', 'timur', 'barat', 'pusat'])->default('pusat');
+            $table->text('deskripsi')->nullable();
             $table->timestamps();
         });
     }
@@ -22,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('kategori_barangs');
+        Schema::dropIfExists('lokasi_kampuses');
     }
 };

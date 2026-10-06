@@ -12,7 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('foto_barangs', function (Blueprint $table) {
-            $table->id();
+            $table->bigIncrements('id');
+            $table->bigInteger('laporan_id')->index('foto_barangs_laporan_id_foreign');
+            $table->string('file_path');
+            $table->string('thumbnail_path')->nullable();
+            $table->boolean('is_primary')->default(false);
             $table->timestamps();
         });
     }

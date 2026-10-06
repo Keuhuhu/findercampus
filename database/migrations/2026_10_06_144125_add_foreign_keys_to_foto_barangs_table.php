@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('activity_logs', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::table('foto_barangs', function (Blueprint $table) {
+            $table->foreign(['laporan_id'])->references(['id'])->on('laporans')->onUpdate('no action')->onDelete('cascade');
         });
     }
 
@@ -22,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('activity_logs');
+        Schema::table('foto_barangs', function (Blueprint $table) {
+            $table->dropForeign('foto_barangs_laporan_id_foreign');
+        });
     }
 };
