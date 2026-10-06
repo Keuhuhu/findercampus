@@ -1,0 +1,201 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@theme {
+    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+
+    --color-primary: #1e40af;
+    --color-primary-dark: #1e3a8a;
+    --color-primary-light: #3b82f6;
+    --color-accent: #f59e0b;
+    --color-accent-dark: #d97706;
+    --color-danger: #dc2626;
+    --color-background: #f8fafc;
+    --color-surface: #ffffff;
+}
+
+/* ── Custom color utilities ── */
+@layer utilities {
+    .bg-primary        { background-color: var(--color-primary); }
+    .bg-primary-dark   { background-color: var(--color-primary-dark); }
+    .bg-primary-light  { background-color: var(--color-primary-light); }
+    .bg-accent         { background-color: var(--color-accent); }
+    .bg-accent-dark    { background-color: var(--color-accent-dark); }
+    .bg-danger         { background-color: var(--color-danger); }
+
+    .text-primary      { color: var(--color-primary); }
+    .text-primary-dark { color: var(--color-primary-dark); }
+    .text-accent       { color: var(--color-accent); }
+    .text-danger       { color: var(--color-danger); }
+
+    .border-primary    { border-color: var(--color-primary); }
+    .border-accent     { border-color: var(--color-accent); }
+    .ring-primary      { --tw-ring-color: var(--color-primary); }
+
+    .hover\:bg-primary:hover      { background-color: var(--color-primary); }
+    .hover\:bg-primary-dark:hover { background-color: var(--color-primary-dark); }
+    .hover\:bg-accent:hover       { background-color: var(--color-accent); }
+    .hover\:text-primary:hover    { color: var(--color-primary); }
+    .hover\:text-accent:hover     { color: var(--color-accent); }
+    .focus\:ring-primary:focus    { --tw-ring-color: var(--color-primary); }
+    .focus\:border-primary:focus  { border-color: var(--color-primary); }
+}
+
+/* ══════════════════════════════════════════════
+   PAGE TRANSITIONS
+   ══════════════════════════════════════════════ */
+body {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+body.page-ready {
+    opacity: 1;
+}
+
+/* ══════════════════════════════════════════════
+   SCROLL REVEAL
+   ══════════════════════════════════════════════ */
+.reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.reveal.revealed {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ══════════════════════════════════════════════
+   RIPPLE EFFECT
+   ══════════════════════════════════════════════ */
+.btn-ripple {
+    position: relative;
+    overflow: hidden;
+}
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    transform: scale(0);
+    animation: ripple-anim 0.6s linear;
+    pointer-events: none;
+}
+@keyframes ripple-anim {
+    to { transform: scale(4); opacity: 0; }
+}
+
+/* ══════════════════════════════════════════════
+   FLASH / TOAST MESSAGES
+   ══════════════════════════════════════════════ */
+[data-flash] {
+    transform: translateY(-16px);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.35s ease;
+}
+[data-flash].flash-show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* ══════════════════════════════════════════════
+   DROPDOWN TRANSITIONS (Alpine x-transition)
+   ══════════════════════════════════════════════ */
+.dropdown-enter {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+}
+.dropdown-enter-active {
+    transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.dropdown-leave-active {
+    transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.dropdown-leave-to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+}
+
+/* ══════════════════════════════════════════════
+   CARD HOVER LIFT
+   ══════════════════════════════════════════════ */
+.card-lift {
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.22s ease;
+}
+.card-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px -6px rgba(0,0,0,0.12), 0 4px 10px -4px rgba(0,0,0,0.08);
+}
+
+/* ══════════════════════════════════════════════
+   NAV LINK ACTIVE INDICATOR SLIDE
+   ══════════════════════════════════════════════ */
+nav a {
+    position: relative;
+}
+
+/* ══════════════════════════════════════════════
+   FORM INPUT FOCUS ANIMATION
+   ══════════════════════════════════════════════ */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+input:not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus {
+    transform: translateY(-1px);
+}
+
+/* ══════════════════════════════════════════════
+   AVATAR HOVER
+   ══════════════════════════════════════════════ */
+.avatar-btn {
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.avatar-btn:hover {
+    transform: scale(1.05);
+}
+
+/* ══════════════════════════════════════════════
+   NOTIFICATION BELL SHAKE
+   ══════════════════════════════════════════════ */
+@keyframes bell-shake {
+    0%, 100% { transform: rotate(0deg); }
+    20%       { transform: rotate(-12deg); }
+    40%       { transform: rotate(10deg); }
+    60%       { transform: rotate(-8deg); }
+    80%       { transform: rotate(6deg); }
+}
+.bell-btn:hover svg {
+    animation: bell-shake 0.5s ease;
+}
+
+/* ══════════════════════════════════════════════
+   BADGE PULSE
+   ══════════════════════════════════════════════ */
+.badge-pulse {
+    animation: badge-ping 2s ease-in-out infinite;
+}
+@keyframes badge-ping {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
+    50%       { box-shadow: 0 0 0 5px rgba(220,38,38,0); }
+}
+
+/* ══════════════════════════════════════════════
+   SKELETON LOADING SHIMMER
+   ══════════════════════════════════════════════ */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+}
