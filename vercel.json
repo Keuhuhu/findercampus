@@ -1,5 +1,6 @@
 {
     "version": 2,
+    "buildCommand": "npm install && npm run build",
     "outputDirectory": "public",
     "functions": {
         "api/index.php": {
@@ -12,7 +13,7 @@
             "dest": "/build/$1"
         },
         {
-            "src": "/(css|js|images|favicon.ico)(.*)",
+            "src": "/(css|js|images|fonts|favicon.ico)(.*)",
             "dest": "/$1$2"
         },
         {
@@ -22,7 +23,7 @@
     ],
     "env": {
         "APP_ENV": "production",
-        "APP_DEBUG": "true",
+        "APP_DEBUG": "false",
         "LOG_CHANNEL": "stderr",
         "CACHE_STORE": "array",
         "SESSION_DRIVER": "cookie",
