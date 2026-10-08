@@ -74,7 +74,7 @@ class LaporanController extends Controller
         if ($request->hasFile('foto')) {
             $isUtama = true;
             foreach ($request->file('foto') as $foto) {
-                $path = $foto->store('barangs', 'public');
+                $path = $foto->store('images/barangs');
 
                 FotoBarang::create([
                     'laporan_id' => $laporan->id,
@@ -143,7 +143,7 @@ class LaporanController extends Controller
         }
 
         foreach ($laporan->fotos as $foto) {
-            Storage::disk('public')->delete($foto->file_path);
+            \Illuminate\Support\Facades\Storage::delete($foto->file_path);
         }
 
         $laporan->delete();
@@ -154,9 +154,9 @@ class LaporanController extends Controller
     public function downloadQr($id)
     {
         $laporan = Laporan::findOrFail($id);
-        if (!$laporan->qr_code_path || !Storage::disk('public')->exists($laporan->qr_code_path)) {
+        if (!$laporan->qr_code_path || !\Illuminate\Support\Facades\Storage::exists($laporan->qr_code_path)) {
             abort(404, 'QR Code tidak ditemukan.');
         }
-        return Storage::disk('public')->download($laporan->qr_code_path, 'QR_' . $laporan->kode_laporan . '.png');
+        return \Illuminate\Support\Facades\Storage::download($laporan->qr_code_path, 'QR_' . $laporan->kode_laporan . '.png');
     }
 }

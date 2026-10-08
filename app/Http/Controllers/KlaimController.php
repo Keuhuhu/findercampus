@@ -55,8 +55,8 @@ class KlaimController extends Controller
             $image = $manager->read($request->file('foto_bukti'));
             $image->scaleDown(1200, 1200);
 
-            $path = 'bukti/' . $laporan->id . '_' . Auth::id() . '_' . time() . '.jpg';
-            Storage::disk('public')->put($path, $image->toJpeg(80));
+            $path = 'images/bukti/' . $laporan->id . '_' . Auth::id() . '_' . time() . '.jpg';
+            \Illuminate\Support\Facades\Storage::put($path, $image->toJpeg(80));
 
             $klaimData['foto_bukti'] = $path;
         }

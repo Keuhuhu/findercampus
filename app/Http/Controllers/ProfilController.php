@@ -68,10 +68,10 @@ class ProfilController extends Controller
         $user = Auth::user();
 
         if ($user->avatar) {
-            Storage::disk('public')->delete($user->avatar);
+            \Illuminate\Support\Facades\Storage::delete($user->avatar);
         }
 
-        $path = $request->file('avatar')->store('avatars', 'public');
+        $path = $request->file('avatar')->store('images/avatars');
         $user->avatar = $path;
         $user->save();
 
