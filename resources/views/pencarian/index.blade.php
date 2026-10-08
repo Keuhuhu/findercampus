@@ -8,7 +8,7 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 mb-6">
+            <div class="bg-white overflow-visible shadow-sm sm:rounded-lg p-6 mb-6">
                 <h3 class="text-lg font-bold mb-4">Mulai Pencocokan</h3>
                 <form method="GET" action="{{ route('pencarian.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     

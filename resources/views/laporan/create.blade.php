@@ -47,7 +47,7 @@
                 </label>
             </div>
 
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-visible">
                 <!-- Section 1: Informasi Dasar -->
                 <div class="p-6 sm:p-8 border-b border-gray-100">
                     <h2 class="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
