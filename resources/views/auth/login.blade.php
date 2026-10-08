@@ -11,18 +11,7 @@
             <p class="text-sm text-gray-500 mt-2">Gunakan akun kampus Anda untuk mengakses portal layanan kehilangan.</p>
         </div>
 
-        <!-- SSO Button (Placeholder) -->
-        <button type="button" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 text-blue-600 font-semibold rounded-lg hover:bg-blue-100 transition border border-blue-100 mb-6">
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-            </svg>
-            Masuk dengan SSO Kampus
-        </button>
 
-        <div class="relative flex items-center justify-center mb-6">
-            <div class="border-t border-gray-200 w-full"></div>
-            <span class="bg-white px-3 text-xs text-gray-400 absolute">atau masuk manual</span>
-        </div>
 
         <form method="POST" action="/login">
             @csrf
@@ -74,12 +63,6 @@
 
         <div class="mt-8 text-center text-sm text-gray-500">
             Belum memiliki akun? <a href="/register" class="text-blue-600 font-bold hover:underline">Daftar sekarang</a>
-        </div>
-    </div>
-    
-        <div class="mt-8 text-center flex items-center justify-center gap-2 text-xs text-gray-500">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            Terhubung dengan SSO & Server Verifikasi Kampus
         </div>
     </div>
 </x-guest-layout>
