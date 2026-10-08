@@ -14,34 +14,35 @@
                     
                     <div class="md:col-span-2 relative">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih Laporan Kehilangan Anda</label>
-                        <div class="relative">
-                            <select name="laporan_id" required class="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-300 appearance-none shadow-sm cursor-pointer hover:border-indigo-300">
-                                <option value="">-- Pilih Barang yang Hilang --</option>
-                                @foreach($laporanSaya as $lap)
-                                    <option value="{{ $lap->id }}" {{ request('laporan_id') == $lap->id ? 'selected' : '' }}>
-                                        {{ $lap->kode_laporan }} - {{ $lap->nama_barang }} ({{ $lap->tanggal_kejadian->format('d M Y') }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                            </div>
-                        </div>
+                        @php
+                            $optLaporan = [];
+                            foreach($laporanSaya as $lap) {
+                                $optLaporan[$lap->id] = $lap->kode_laporan . ' - ' . $lap->nama_barang . ' (' . $lap->tanggal_kejadian->format('d M Y') . ')';
+                            }
+                        @endphp
+                        <x-custom-select 
+                            name="laporan_id" 
+                            :options="$optLaporan" 
+                            placeholder="-- Pilih Barang yang Hilang --" 
+                            selected="{{ request('laporan_id') }}"
+                            :required="true"
+                        />
                     </div>
 
                     <div class="relative">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Filter Kategori (Opsional)</label>
-                        <div class="relative">
-                            <select name="kategori" class="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-300 appearance-none shadow-sm cursor-pointer hover:border-indigo-300">
-                                <option value="">Semua Kategori</option>
-                                @foreach($kategoris as $k)
-                                    <option value="{{ $k->id }}" {{ request('kategori') == $k->id ? 'selected' : '' }}>{{ $k->nama }}</option>
-                                @endforeach
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                            </div>
-                        </div>
+                        @php
+                            $optKategori = [];
+                            foreach($kategoris as $k) {
+                                $optKategori[$k->id] = $k->nama;
+                            }
+                        @endphp
+                        <x-custom-select 
+                            name="kategori" 
+                            :options="$optKategori" 
+                            placeholder="Semua Kategori" 
+                            selected="{{ request('kategori') }}"
+                        />
                     </div>
 
                     <div>

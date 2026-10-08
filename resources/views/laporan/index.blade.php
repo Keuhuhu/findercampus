@@ -15,30 +15,32 @@
                 <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari barang..." class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent">
             </div>
             <div class="md:col-span-1 relative">
-                <div class="relative">
-                    <select name="kategori" class="w-full pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-300 appearance-none shadow-sm cursor-pointer hover:border-indigo-300">
-                        <option value="">Semua Kategori</option>
-                        @foreach($kategoris as $kat)
-                            <option value="{{ $kat->id }}" {{ request('kategori') == $kat->id ? 'selected' : '' }}>{{ $kat->nama }}</option>
-                        @endforeach
-                    </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
-                </div>
+                @php
+                    $optKategori = [];
+                    foreach($kategoris as $kat) {
+                        $optKategori[$kat->id] = $kat->nama;
+                    }
+                @endphp
+                <x-custom-select 
+                    name="kategori" 
+                    :options="$optKategori" 
+                    placeholder="Semua Kategori" 
+                    selected="{{ request('kategori') }}"
+                />
             </div>
             <div class="md:col-span-1 relative">
-                <div class="relative">
-                    <select name="lokasi" class="w-full pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-300 appearance-none shadow-sm cursor-pointer hover:border-indigo-300">
-                        <option value="">Semua Lokasi</option>
-                        @foreach($lokasis as $lok)
-                            <option value="{{ $lok->id }}" {{ request('lokasi') == $lok->id ? 'selected' : '' }}>{{ $lok->nama }}</option>
-                        @endforeach
-                    </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
-                </div>
+                @php
+                    $optLokasi = [];
+                    foreach($lokasis as $lok) {
+                        $optLokasi[$lok->id] = $lok->nama;
+                    }
+                @endphp
+                <x-custom-select 
+                    name="lokasi" 
+                    :options="$optLokasi" 
+                    placeholder="Semua Lokasi" 
+                    selected="{{ request('lokasi') }}"
+                />
             </div>
             <div class="md:col-span-1 flex gap-2">
                 <button type="submit" class="flex-1 px-4 py-2 bg-gray-900 text-white font-semibold text-sm rounded-lg hover:bg-black transition">Filter</button>
