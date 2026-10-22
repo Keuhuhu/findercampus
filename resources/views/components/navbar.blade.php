@@ -30,14 +30,23 @@
             </div>
 
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-4">
+                @php
+                    $unreadNotifCount = Auth::check() ? Auth::user()->unreadNotifications()->count() : 0;
+                    $recentNotifs = Auth::check() ? Auth::user()->notifications()->latest()->take(5)->get() : collect();
+                @endphp
+
                 <!-- Notifications Dropdown -->
                 <div class="relative" @click.outside="notifOpen = false">
-                    <button type="button" @click="notifOpen = !notifOpen" class="bell-btn p-2 text-gray-400 hover:text-gray-600 focus:outline-none transition relative">
+                    <button type="button" @click="notifOpen = !notifOpen" class="bell-btn p-2 text-gray-400 hover:text-gray-600 focus:outline-none transition relative" title="Notifikasi">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
-                        <!-- Unread Badge -->
-                        <span class="badge-pulse absolute top-1 right-1 inline-flex items-center justify-center w-4 h-4 text-xs font-bold leading-none text-white bg-red-600 rounded-full"></span>
+                        <!-- Unread Badge (only show when there are unread notifications) -->
+                        @if($unreadNotifCount > 0)
+                            <span class="badge-pulse absolute top-1 right-1 inline-flex items-center justify-center min-w-4 h-4 px-1 text-[10px] font-bold leading-none text-white bg-red-600 rounded-full">
+                                {{ $unreadNotifCount > 9 ? '9+' : $unreadNotifCount }}
+                            </span>
+                        @endif
                     </button>
 
                     <div
@@ -51,18 +60,32 @@
                         style="display: none;"
                         class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl py-1 z-50 ring-1 ring-black/5 origin-top-right"
                     >
-                        <div class="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
+                        <div class="px-4 py-2.5 border-b border-gray-100 flex justify-between items-center">
                             <span class="font-semibold text-sm text-gray-700">Notifikasi</span>
-                            <a href="/notifikasi" class="text-xs text-accent hover:underline">Tandai semua dibaca</a>
+                            @if($unreadNotifCount > 0)
+                                <form action="/notifikasi/read-all" method="POST" class="inline">
+                                    @csrf
+                                    <button type="submit" class="text-xs text-indigo-600 hover:underline font-medium">Tandai semua dibaca</button>
+                                </form>
+                            @endif
                         </div>
-                        <div class="max-h-60 overflow-y-auto divide-y divide-gray-50">
-                            <a href="#" class="block px-4 py-3 hover:bg-gray-50 bg-blue-50/40 transition">
-                                <p class="text-sm text-gray-800 font-medium">Barang yang mirip ditemukan!</p>
-                                <p class="text-xs text-gray-500 mt-1">Sistem SMART mendeteksi kecocokan 94% dengan laporan kehilangan Anda.</p>
-                                <p class="text-xs text-gray-400 mt-1 text-right">2 jam yang lalu</p>
-                            </a>
+                        <div class="max-h-64 overflow-y-auto divide-y divide-gray-50">
+                            @forelse($recentNotifs as $notif)
+                                <a href="{{ isset($notif->data['url']) ? $notif->data['url'] : '/notifikasi' }}" class="block px-4 py-3 hover:bg-gray-50 {{ $notif->read_at ? 'bg-white' : 'bg-blue-50/40' }} transition">
+                                    <p class="text-sm text-gray-800 font-medium leading-snug">{{ $notif->data['title'] ?? 'Pemberitahuan Baru' }}</p>
+                                    <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ $notif->data['message'] ?? '' }}</p>
+                                    <p class="text-[11px] text-gray-400 mt-1 text-right">{{ $notif->created_at->diffForHumans() }}</p>
+                                </a>
+                            @empty
+                                <div class="px-4 py-8 text-center text-gray-400">
+                                    <svg class="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                    </svg>
+                                    <p class="text-xs font-medium">Tidak ada notifikasi saat ini</p>
+                                </div>
+                            @endforelse
                         </div>
-                        <a href="/notifikasi" class="block px-4 py-2 text-sm text-center text-accent hover:bg-gray-50 font-medium transition">
+                        <a href="/notifikasi" class="block px-4 py-2.5 text-xs text-center text-indigo-600 hover:bg-gray-50 font-semibold transition border-t border-gray-100">
                             Lihat semua notifikasi
                         </a>
                     </div>
@@ -151,8 +174,13 @@
             <a href="/status" class="block ps-3 pe-4 py-2 border-l-4 {{ request()->is('status') ? 'border-accent text-accent bg-blue-50' : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300' }} text-base font-medium transition duration-150 ease-in-out">
                 Status & Klaim
             </a>
-            <a href="/notifikasi" class="block ps-3 pe-4 py-2 border-l-4 border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 text-base font-medium transition duration-150 ease-in-out">
-                Notifikasi
+            <a href="/notifikasi" class="flex items-center justify-between ps-3 pe-4 py-2 border-l-4 {{ request()->is('notifikasi*') ? 'border-accent text-accent bg-blue-50' : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300' }} text-base font-medium transition duration-150 ease-in-out">
+                <span>Notifikasi</span>
+                @if($unreadNotifCount > 0)
+                    <span class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-xs font-bold text-white bg-red-600 rounded-full">
+                        {{ $unreadNotifCount > 9 ? '9+' : $unreadNotifCount }}
+                    </span>
+                @endif
             </a>
         </div>
 
