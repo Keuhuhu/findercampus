@@ -8,7 +8,7 @@ class Laporan extends Model
 {
     protected $fillable = [
         'user_id', 'kode_laporan', 'tipe', 'nama_barang', 'kategori_id',
-        'lokasi_id', 'tanggal_kejadian', 'warna', 'ciri_khusus',
+        'lokasi_id', 'tanggal_kejadian', 'waktu_kejadian', 'warna', 'ciri_khusus',
         'deskripsi', 'qr_code_path', 'status'
     ];
 
