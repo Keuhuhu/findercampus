@@ -73,13 +73,16 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
     const hiddenList = uploader.querySelector('[data-upload-id-list]');
     const items = uploader.querySelector('[data-photo-upload-items]');
     const status = uploader.querySelector('[data-photo-upload-status]');
+    const previews = uploader.parentElement.querySelector('[data-photo-preview-grid]');
     const maxFiles = Number(uploader.dataset.maxFiles || 5);
     const initialExisting = Number(uploader.dataset.existingFiles || 0);
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
     const pendingUploads = new Set();
     const failedUploads = new Set();
+    const previewUrls = new Map();
+    let dismissedFailedUpload = false;
 
-    if (!form || !input || !hiddenList || !items || !status || !csrfToken) return;
+    if (!form || !input || !hiddenList || !items || !status || !previews || !csrfToken) return;
 
     const uploadCount = () => hiddenList.querySelectorAll('[data-upload-id]').length;
     const existingCount = () => Math.max(0, initialExisting - form.querySelectorAll('[data-remove-photo]:checked').length);
@@ -87,6 +90,66 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
         status.textContent = message;
         status.classList.toggle('text-red-600', isError);
         status.classList.toggle('text-gray-600', !isError);
+    };
+    const refreshStatus = () => {
+        if (pendingUploads.size > 0) {
+            reportStatus(`${pendingUploads.size} foto sedang diunggah.`);
+        } else if (failedUploads.size > 0) {
+            reportStatus(`${failedUploads.size} foto gagal. Tutup foto yang gagal untuk membuangnya.`, true);
+        } else if (uploadCount() > 0) {
+            reportStatus(`${uploadCount()} foto siap disimpan.`);
+        } else if (dismissedFailedUpload) {
+            reportStatus('Foto gagal dibuang. Laporan dapat dilanjutkan tanpa foto tersebut.');
+        } else {
+            reportStatus('');
+        }
+    };
+    const createPreview = (file, previewId) => {
+        const preview = document.createElement('div');
+        preview.className = 'relative aspect-square overflow-hidden rounded-lg border border-gray-200';
+        preview.dataset.previewId = previewId;
+
+        const image = document.createElement('img');
+        image.src = URL.createObjectURL(file);
+        image.alt = file.name;
+        image.className = 'h-full w-full object-cover';
+        previewUrls.set(previewId, image.src);
+        preview.append(image);
+
+        previews.append(preview);
+        previews.classList.remove('hidden');
+        previews.classList.add('grid');
+    };
+    const syncPrimaryPreview = () => {
+        previews.querySelectorAll('[data-primary-badge]').forEach((badge) => badge.remove());
+
+        if (existingCount() > 0) return;
+
+        const firstUpload = hiddenList.querySelector('[data-upload-id]');
+        const previewId = firstUpload?.dataset.previewId;
+        if (!previewId) return;
+
+        const preview = previews.querySelector(`[data-preview-id="${previewId}"]`);
+        if (!preview) return;
+
+        const badge = document.createElement('div');
+        badge.className = 'absolute inset-x-0 top-0 bg-primary/80 py-1 text-center text-[10px] font-bold text-white backdrop-blur-sm';
+        badge.dataset.primaryBadge = '';
+        badge.textContent = 'FOTO UTAMA';
+        preview.append(badge);
+    };
+    const removePreview = (previewId) => {
+        const previewUrl = previewUrls.get(previewId);
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+            previewUrls.delete(previewId);
+        }
+
+        previews.querySelector(`[data-preview-id="${previewId}"]`)?.remove();
+        if (previews.childElementCount === 0) {
+            previews.classList.remove('grid');
+            previews.classList.add('hidden');
+        }
     };
 
     input.addEventListener('change', async () => {
@@ -104,7 +167,10 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
             }
 
             const row = document.createElement('div');
+            const previewId = window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            row.dataset.previewId = previewId;
             row.className = 'flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs';
+            row.addEventListener('click', (event) => event.stopPropagation());
             const label = document.createElement('span');
             label.className = 'truncate pr-3 text-gray-700';
             label.textContent = `${file.name} sedang diunggah`;
@@ -114,7 +180,9 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
             removeButton.textContent = 'Batalkan';
             row.append(label, removeButton);
             items.append(row);
+            createPreview(file, previewId);
             pendingUploads.add(row);
+            refreshStatus();
 
             try {
                 const signResponse = await fetch(uploader.dataset.signUrl, {
@@ -143,10 +211,13 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
                 hiddenId.name = 'photo_upload_ids[]';
                 hiddenId.value = signedUpload.id;
                 hiddenId.dataset.uploadId = '';
+                hiddenId.dataset.previewId = previewId;
                 hiddenList.append(hiddenId);
+                syncPrimaryPreview();
                 label.textContent = `${file.name} berhasil diunggah`;
                 removeButton.textContent = 'Hapus';
-                removeButton.addEventListener('click', async () => {
+                removeButton.addEventListener('click', async (event) => {
+                    event.stopPropagation();
                     removeButton.disabled = true;
                     try {
                         const deleteUrl = uploader.dataset.deleteUrl.replace('UPLOAD_ID', encodeURIComponent(signedUpload.id));
@@ -157,7 +228,9 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
                         if (!deleteResponse.ok) throw new Error('Foto sementara tidak dapat dihapus.');
                         hiddenId.remove();
                         row.remove();
-                        reportStatus('Foto unggahan dihapus.');
+                        removePreview(previewId);
+                        syncPrimaryPreview();
+                        refreshStatus();
                     } catch (error) {
                         removeButton.disabled = false;
                         reportStatus(error.message, true);
@@ -168,13 +241,19 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
                 failedUploads.add(row);
                 label.textContent = `${file.name}: ${error.message}`;
                 removeButton.textContent = 'Tutup';
-                removeButton.addEventListener('click', () => {
+                removeButton.title = 'Tutup dan buang foto yang gagal';
+                removeButton.setAttribute('aria-label', `Tutup dan buang foto ${file.name} yang gagal`);
+                removeButton.addEventListener('click', (event) => {
+                    event.stopPropagation();
                     failedUploads.delete(row);
+                    removePreview(previewId);
                     row.remove();
+                    dismissedFailedUpload = true;
+                    refreshStatus();
                 }, { once: true });
-                reportStatus(error.message, true);
             } finally {
                 pendingUploads.delete(row);
+                refreshStatus();
             }
         }
 

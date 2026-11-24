@@ -107,6 +107,9 @@
                         <p data-photo-upload-status class="mt-2 text-xs text-gray-600" role="status" aria-live="polite"></p>
                     @endif
                 </div>
+                @if(config('filesystems.upload_driver') === 'supabase_s3')
+                    <div data-photo-preview-grid class="mt-4 grid-cols-2 gap-3 sm:grid-cols-5 hidden" aria-label="Pratinjau foto baru yang dipilih"></div>
+                @endif
                 @error('foto')<p class="mt-2 text-xs text-red-500">{{ $message }}</p>@enderror
                 @error('foto.*')<p class="mt-2 text-xs text-red-500">{{ $message }}</p>@enderror
                 @error('photo_upload_ids')<p class="mt-2 text-xs text-red-500">{{ $message }}</p>@enderror

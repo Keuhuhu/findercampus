@@ -13,6 +13,10 @@
         previewImages: [],
         handleFiles(event) {
             this.previewImages = [];
+            if (event.target.closest('[data-report-photo-uploader]')?.dataset.directUpload === 'true') {
+                return;
+            }
+
             const files = event.target.files;
             if (files.length > 5) {
                 alert('Maksimal 5 foto yang diizinkan');
@@ -203,6 +207,10 @@
                                 <p data-photo-upload-status class="mt-2 text-xs text-gray-600" role="status" aria-live="polite"></p>
                             @endif
                         </div>
+
+                        @if(config('filesystems.upload_driver') === 'supabase_s3')
+                            <div data-photo-preview-grid class="mt-4 grid-cols-2 gap-4 sm:grid-cols-5 hidden" aria-label="Pratinjau foto yang dipilih"></div>
+                        @endif
 
                         <!-- Image Preview Grid -->
                         <template x-if="previewImages.length > 0">
