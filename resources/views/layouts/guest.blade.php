@@ -14,7 +14,7 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans text-gray-900 antialiased bg-gray-50 min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 p-4">
+<body class="guest-page font-sans text-gray-900 antialiased bg-gray-50 min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 p-4">
     <div class="mb-6">
         <a href="/">
             <div class="text-3xl font-extrabold text-blue-800">Finder<span class="text-amber-500">Campus</span></div>
@@ -22,8 +22,8 @@
     </div>
 
     <!-- Container utama dihapus agar tampilan form register/login yang mengaturnya sendiri -->
-    <div class="w-full flex justify-center">
+    <main class="guest-content w-full flex justify-center">
         {{ $slot }}
-    </div>
+    </main>
 </body>
 </html>

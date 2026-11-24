@@ -4,22 +4,127 @@ window.Alpine = Alpine;
 
 Alpine.start();
 
-/* ─── Page fade-in ─────────────────────────────────────── */
+/* ─── Shared motion and scroll controls ────────────────── */
+const sitePrefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let revealObserver = null;
+
+const prepareMotionTargets = () => {
+    const targets = document.querySelectorAll('.reveal, .card-lift, main section, main article, .guest-content > div');
+
+    targets.forEach((target, index) => {
+        if (target.dataset.motionPrepared === 'true') return;
+
+        target.dataset.motionPrepared = 'true';
+        target.classList.add('motion-reveal-target');
+        target.style.setProperty('--motion-delay', `${Math.min(index % 5, 4) * 55}ms`);
+
+        if (revealObserver) {
+            revealObserver.observe(target);
+        } else {
+            target.classList.add('revealed');
+        }
+    });
+};
+
+if (!sitePrefersReducedMotion && 'IntersectionObserver' in window) {
+    document.body.classList.add('motion-enabled');
+    revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+
+            entry.target.classList.add('revealed');
+            revealObserver.unobserve(entry.target);
+        });
+    }, { threshold: 0.08, rootMargin: '0px 0px -48px 0px' });
+}
+
+prepareMotionTargets();
+
 document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add('page-ready');
 });
 
-/* ─── Scroll-reveal (IntersectionObserver) ─────────────── */
-const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('revealed');
-            revealObserver.unobserve(entry.target);
-        }
-    });
-}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+const scrollProgress = document.createElement('div');
+scrollProgress.className = 'scroll-progress';
+scrollProgress.setAttribute('aria-hidden', 'true');
+scrollProgress.innerHTML = '<span></span>';
+document.body.append(scrollProgress);
 
-document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+const backToTop = document.createElement('button');
+backToTop.className = 'back-to-top';
+backToTop.type = 'button';
+backToTop.setAttribute('aria-label', 'Kembali ke atas');
+backToTop.innerHTML = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 14 6-6 6 6M12 9v10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+document.body.append(backToTop);
+
+let scrollUpdateQueued = false;
+const updateScrollControls = () => {
+    const scrollableDistance = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = scrollableDistance > 0 ? Math.min(1, Math.max(0, window.scrollY / scrollableDistance)) : 0;
+
+    document.documentElement.style.setProperty('--page-scroll-progress', String(progress));
+    document.body.classList.toggle('has-scrolled', window.scrollY > 24);
+    backToTop.classList.toggle('back-to-top--visible', window.scrollY > 480);
+    backToTop.tabIndex = window.scrollY > 480 ? 0 : -1;
+    scrollUpdateQueued = false;
+};
+
+window.addEventListener('scroll', () => {
+    if (scrollUpdateQueued) return;
+
+    scrollUpdateQueued = true;
+    window.requestAnimationFrame(updateScrollControls);
+}, { passive: true });
+
+window.addEventListener('resize', updateScrollControls, { passive: true });
+updateScrollControls();
+
+backToTop.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: sitePrefersReducedMotion ? 'auto' : 'smooth' });
+});
+
+if (!sitePrefersReducedMotion && 'IntersectionObserver' in window) {
+    const counterObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+
+            const element = entry.target;
+            const finalValue = Number(element.textContent.replace(/[^\d.-]/g, ''));
+            if (!Number.isFinite(finalValue) || finalValue <= 0) {
+                observer.unobserve(element);
+                return;
+            }
+
+            const startTime = performance.now();
+            const duration = 900;
+            const animateCounter = (now) => {
+                const progress = Math.min(1, (now - startTime) / duration);
+                const easedProgress = 1 - Math.pow(1 - progress, 3);
+                element.textContent = new Intl.NumberFormat('id-ID').format(Math.round(finalValue * easedProgress));
+
+                if (progress < 1) {
+                    window.requestAnimationFrame(animateCounter);
+                }
+            };
+
+            window.requestAnimationFrame(animateCounter);
+            observer.unobserve(element);
+        });
+    }, { threshold: 0.55 });
+
+    document.querySelectorAll('[data-count-up]').forEach((element) => counterObserver.observe(element));
+
+    const weightBarObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+
+            entry.target.classList.add('weight-bar--visible');
+            observer.unobserve(entry.target);
+        });
+    }, { threshold: 0.3 });
+
+    document.querySelectorAll('.smart-weight-bar').forEach((bar) => weightBarObserver.observe(bar));
+}
 
 /* ─── Claim decision cards ─────────────────────────────── */
 const claimActionGrid = document.querySelector('[data-claim-actions]');
@@ -458,7 +563,7 @@ document.querySelectorAll('[data-report-gallery]').forEach((gallery) => {
 });
 
 document.addEventListener('alpine:initialized', () => {
-    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+    prepareMotionTargets();
 });
 
 /* ─── Ripple effect on buttons ─────────────────────────── */
