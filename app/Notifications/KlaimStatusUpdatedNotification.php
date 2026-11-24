@@ -2,53 +2,36 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
+use App\Models\Klaim;
 use Illuminate\Notifications\Notification;
 
 class KlaimStatusUpdatedNotification extends Notification
 {
-    use Queueable;
+    public function __construct(
+        private readonly Klaim $klaim,
+        private readonly string $status,
+        private readonly ?string $catatan,
+    ) {}
 
-    /**
-     * Create a new notification instance.
-     */
-    public function __construct()
-    {
-        //
-    }
-
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['database'];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
-    public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->line('The introduction to the notification.')
-            ->action('Notification Action', url('/'))
-            ->line('Thank you for using our application!');
-    }
-
-    /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(object $notifiable): array
     {
+        $approved = $this->status === 'disetujui';
+
         return [
-            //
+            'type' => 'klaim_status',
+            'title' => $approved ? 'Klaim disetujui' : 'Klaim ditolak',
+            'message' => $approved
+                ? sprintf('Klaim Anda untuk %s telah disetujui.', $this->klaim->laporan->nama_barang)
+                : sprintf('Klaim Anda untuk %s ditolak.%s', $this->klaim->laporan->nama_barang, $this->catatan ? ' Catatan: '.$this->catatan : ''),
+            'url' => route('klaim.show', $this->klaim->id, false),
+            'klaim_id' => $this->klaim->id,
+            'status' => $this->status,
+            'catatan' => $this->catatan,
         ];
     }
 }

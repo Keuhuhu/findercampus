@@ -21,7 +21,7 @@
                 <!-- Avatar -->
                 <div class="relative inline-block mb-4">
                     @if($user->avatar)
-                        <img src="{{ Storage::url($user->avatar) }}" alt="Avatar" class="w-24 h-24 rounded-full object-cover border-4 border-gray-100 shadow-sm">
+                        <img src="@mediaUrl($user->avatar)" alt="Avatar" class="w-24 h-24 rounded-full object-cover border-4 border-gray-100 shadow-sm">
                     @else
                         <div class="w-24 h-24 rounded-full bg-primary flex items-center justify-center text-white text-3xl font-bold border-4 border-gray-100 shadow-sm">
                             {{ substr($user->name, 0, 1) }}

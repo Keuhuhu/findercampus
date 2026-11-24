@@ -2,53 +2,39 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
+use App\Models\Laporan;
 use Illuminate\Notifications\Notification;
 
 class MatchDitemukanNotification extends Notification
 {
-    use Queueable;
+    public function __construct(
+        private readonly Laporan $laporan,
+        private readonly Laporan $laporanCocok,
+        private readonly int $skor,
+        private readonly string $matchKey,
+    ) {}
 
-    /**
-     * Create a new notification instance.
-     */
-    public function __construct()
-    {
-        //
-    }
-
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['database'];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
-    public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->line('The introduction to the notification.')
-            ->action('Notification Action', url('/'))
-            ->line('Thank you for using our application!');
-    }
-
-    /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(object $notifiable): array
     {
         return [
-            //
+            'type' => 'match_ditemukan',
+            'title' => 'Potensi kecocokan baru',
+            'message' => sprintf(
+                'Laporan %s cocok dengan laporan %s dengan skor %d%%.',
+                $this->laporan->kode_laporan,
+                $this->laporanCocok->kode_laporan,
+                $this->skor,
+            ),
+            'url' => route('laporan.show', $this->laporanCocok->id, false),
+            'match_key' => $this->matchKey,
+            'laporan_id' => $this->laporan->id,
+            'matched_laporan_id' => $this->laporanCocok->id,
+            'score' => $this->skor,
         ];
     }
 }

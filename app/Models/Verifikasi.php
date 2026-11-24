@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Verifikasi extends Model
 {
-    protected $fillable = ['klaim_id', 'admin_id', 'status', 'catatan'];
+    protected $fillable = ['klaim_id', 'admin_id', 'hasil', 'catatan'];
 
     public function klaim()
     {
@@ -18,4 +18,3 @@ class Verifikasi extends Model
         return $this->belongsTo(User::class, 'admin_id');
     }
 }
-

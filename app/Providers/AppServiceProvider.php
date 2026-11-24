@@ -2,8 +2,9 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\URL; 
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,8 +21,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Blade::directive('mediaUrl', static function (string $expression): string {
+            return "<?php echo e(app(\\App\\Services\\AssetStorage::class)->publicUrl($expression)); ?>";
+        });
+
         if (app()->environment('production')) {
-        URL::forceScheme('https');
-      }
+            URL::forceScheme('https');
+        }
     }
 }

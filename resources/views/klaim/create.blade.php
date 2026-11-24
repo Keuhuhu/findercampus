@@ -12,7 +12,7 @@
                     <div class="mt-4 flex gap-4 items-center bg-white p-3 rounded-lg border border-gray-100">
                         <div class="w-16 h-16 rounded overflow-hidden bg-gray-100 shrink-0">
                             @if($laporan->fotoUtama())
-                                <img src="{{ Storage::url($laporan->fotoUtama()->file_path) }}" class="w-full h-full object-cover">
+                                <img src="@mediaUrl($laporan->fotoUtama()->file_path)" class="w-full h-full object-cover">
                             @endif
                         </div>
                         <div>

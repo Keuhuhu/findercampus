@@ -95,7 +95,7 @@
                 <div class="relative" @click.outside="profileOpen = false">
                     <button type="button" @click="profileOpen = !profileOpen" class="avatar-btn flex items-center gap-2 focus:outline-none rounded-lg px-2 py-1 hover:bg-gray-50 transition">
                         @if(Auth::check() && Auth::user()->avatar)
-                            <img class="h-8 w-8 rounded-full object-cover border-2 border-indigo-100 shadow-sm" src="{{ Storage::url(Auth::user()->avatar) }}" alt="Avatar" />
+                            <img class="h-8 w-8 rounded-full object-cover border-2 border-indigo-100 shadow-sm" src="@mediaUrl(Auth::user()->avatar)" alt="Avatar" />
                         @else
                             <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border-2 border-indigo-200 shadow-sm">
                                 {{ Auth::check() ? substr(Auth::user()->name, 0, 1) : 'U' }}
@@ -129,7 +129,7 @@
                             Profil Saya
                         </a>
                         @if(Auth::check() && Auth::user()->role === 'admin')
-                            <a href="/admin/dashboard" class="flex items-center gap-2 px-4 py-2 text-sm text-accent font-medium hover:bg-amber-50 transition">
+                            <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-accent font-medium hover:bg-amber-50 transition">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                                 Admin Panel
                             </a>
@@ -196,7 +196,7 @@
                     Profil Saya
                 </a>
                 @if(Auth::check() && Auth::user()->role === 'admin')
-                    <a href="/admin/dashboard" class="block ps-3 pe-4 py-2 border-l-4 border-transparent text-accent hover:text-accent-hover hover:bg-gray-50 text-base font-medium">
+                    <a href="{{ route('admin.dashboard') }}" class="block ps-3 pe-4 py-2 border-l-4 border-transparent text-accent hover:text-accent-hover hover:bg-gray-50 text-base font-medium">
                         Admin Panel
                     </a>
                 @endif

@@ -1,19 +1,19 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\LandingController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProfilController;
-use App\Http\Controllers\LaporanController;
-use App\Http\Controllers\PencarianController;
-use App\Http\Controllers\KlaimController;
-use App\Http\Controllers\StatusController;
-use App\Http\Controllers\NotifikasiController;
-use App\Http\Controllers\ExportController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\VerifikasiController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExportController;
+use App\Http\Controllers\KlaimController;
+use App\Http\Controllers\LandingController;
+use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\NotifikasiController;
+use App\Http\Controllers\PencarianController;
+use App\Http\Controllers\ProfilController;
+use App\Http\Controllers\StatusController;
+use Illuminate\Support\Facades\Route;
 
 // Halaman Utama (Landing Page)
 Route::get('/', [LandingController::class, 'index'])->name('landing');
@@ -46,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pencarian', [PencarianController::class, 'index'])->name('pencarian.index');
     Route::get('/klaim/buat/{laporan}', [KlaimController::class, 'create'])->name('klaim.create');
     Route::post('/klaim', [KlaimController::class, 'store'])->name('klaim.store');
+    Route::get('/klaim/{id}/bukti', [KlaimController::class, 'evidence'])->name('klaim.evidence');
     Route::get('/klaim/{id}', [KlaimController::class, 'show'])->name('klaim.show');
     Route::get('/status', [StatusController::class, 'index'])->name('status');
     Route::get('/notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi.index');
@@ -56,6 +57,7 @@ Route::middleware('auth')->group(function () {
 
 // Admin Routes (Phase 8)
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/dashboard', fn () => redirect()->route('admin.dashboard'))->name('admin.dashboard.legacy');
     Route::get('/', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     Route::get('/users', [AdminDashboardController::class, 'users'])->name('admin.users');
     Route::get('/laporans', [AdminDashboardController::class, 'laporans'])->name('admin.laporans');
@@ -64,6 +66,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('/verifikasi/{klaim_id}/reject', [VerifikasiController::class, 'reject'])->name('admin.verifikasi.reject');
 });
 
-Route::get('/syarat-ketentuan', fn() => view('pages.syarat-ketentuan'))->name('syarat-ketentuan');
-Route::get('/kebijakan-privasi', fn() => view('pages.kebijakan-privasi'))->name('kebijakan-privasi');
-Route::get('/panduan-smart', fn() => view('pages.panduan-smart'))->name('panduan-smart');
+Route::get('/syarat-ketentuan', fn () => view('pages.syarat-ketentuan'))->name('syarat-ketentuan');
+Route::get('/kebijakan-privasi', fn () => view('pages.kebijakan-privasi'))->name('kebijakan-privasi');
+Route::get('/panduan-smart', fn () => view('pages.panduan-smart'))->name('panduan-smart');

@@ -68,7 +68,7 @@
 
                                 <div class="h-48 w-full bg-gray-100">
                                     @if($match->fotoUtama())
-                                        <img src="{{ Storage::url($match->fotoUtama()->file_path) }}" alt="{{ $match->nama_barang }}" class="w-full h-full object-cover">
+                                        <img src="@mediaUrl($match->fotoUtama()->file_path)" alt="{{ $match->nama_barang }}" class="w-full h-full object-cover">
                                     @else
                                         <div class="flex items-center justify-center h-full text-gray-400">Tidak ada foto</div>
                                     @endif
@@ -126,7 +126,7 @@
                         </svg>
                         <h3 class="mt-2 text-sm font-medium text-gray-900">Tidak ada kecocokan tinggi</h3>
                         <p class="mt-1 text-sm text-gray-500">
-                            Sistem belum menemukan barang yang sangat cocok (>40%) dengan laporan kehilangan Anda. Coba kurangi filter atau periksa kembali nanti.
+                            Sistem belum menemukan kecocokan di atas ambang skor 20% untuk laporan kehilangan Anda. Coba kurangi filter atau periksa kembali nanti.
                         </p>
                     </div>
                 @endif

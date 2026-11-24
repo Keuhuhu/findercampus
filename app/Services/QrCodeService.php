@@ -3,30 +3,27 @@
 namespace App\Services;
 
 use App\Models\Laporan;
-use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class QrCodeService
 {
+    public function __construct(private readonly AssetStorage $assetStorage) {}
+
     public function generate(Laporan $laporan): string
     {
-        $url = url('/laporan/' . $laporan->id);
-        
-        $filename = 'qrcodes/' . $laporan->kode_laporan . '.png';
-        
-        // Ensure directory exists
-        if (!Storage::disk('public')->exists('qrcodes')) {
-            Storage::disk('public')->makeDirectory('qrcodes');
-        }
+        $url = url('/laporan/'.$laporan->id);
+        $filename = 'qrcodes/'.$laporan->kode_laporan.'.svg';
 
-        // Generate QR Code image (format PNG)
-        $qrImage = QrCode::format('png')
+        $qrImage = QrCode::format('svg')
             ->size(300)
             ->margin(1)
-            ->color(27, 46, 88) // Primary color
+            ->color(27, 46, 88)
             ->generate($url);
 
-        Storage::disk('public')->put($filename, $qrImage);
+        if (! $this->assetStorage->putPublic($filename, $qrImage, 'image/svg+xml')) {
+            throw new RuntimeException('QR Code gagal disimpan.');
+        }
 
         return $filename;
     }

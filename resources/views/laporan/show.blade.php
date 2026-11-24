@@ -25,7 +25,7 @@
                 @if($laporan->fotos->count() > 0)
                     <div class="w-full h-72 sm:h-96 bg-gray-100 relative group">
                         @php $primary = $laporan->fotoUtama() ?? $laporan->fotos->first(); @endphp
-                        <img src="{{ Storage::url($primary->file_path) }}" class="w-full h-full object-cover">
+                        <img src="@mediaUrl($primary->file_path)" class="w-full h-full object-cover">
                         
                         <div class="absolute top-4 left-4">
                             <x-status-badge :status="$laporan->status" />
@@ -38,7 +38,7 @@
                         <div class="flex gap-2 p-4 bg-gray-50 border-b border-gray-200 overflow-x-auto">
                             @foreach($laporan->fotos as $foto)
                                 <div class="w-20 h-20 rounded-lg overflow-hidden border-2 {{ $foto->is_primary ? 'border-primary' : 'border-transparent' }} shrink-0">
-                                    <img src="{{ Storage::url($foto->file_path) }}" class="w-full h-full object-cover">
+                                    <img src="@mediaUrl($foto->file_path)" class="w-full h-full object-cover">
                                 </div>
                             @endforeach
                         </div>
@@ -141,7 +141,7 @@
                 <p class="text-xs text-gray-500 mb-4">Tempelkan QR Code ini pada barang saat diserahkan ke posko.</p>
                 
                 <div class="inline-block p-2 border-2 border-gray-100 rounded-xl mb-4">
-                    <img src="{{ Storage::url($laporan->qr_code_path) }}" alt="QR Code" class="w-40 h-40">
+                    <img src="@mediaUrl($laporan->qr_code_path)" alt="QR Code" class="w-40 h-40">
                 </div>
                 
                 <a href="/laporan/{{ $laporan->id }}/qr" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-light transition">

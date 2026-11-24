@@ -2,6 +2,11 @@
 
 return [
 
+    'supabase' => [
+        'url' => env('SUPABASE_URL'),
+        'private_bucket' => env('SUPABASE_STORAGE_PRIVATE_BUCKET'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

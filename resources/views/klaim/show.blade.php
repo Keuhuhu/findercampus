@@ -48,8 +48,8 @@
 
                     @if($klaim->foto_bukti)
                         <h3 class="text-sm font-bold text-gray-900 mt-6 mb-3">Foto Bukti Lampiran:</h3>
-                        <a href="{{ Storage::url($klaim->foto_bukti) }}" target="_blank" class="block w-48 rounded-lg overflow-hidden border border-gray-200 hover:ring-2 hover:ring-accent transition">
-                            <img src="{{ Storage::url($klaim->foto_bukti) }}" class="w-full h-auto object-cover">
+                        <a href="{{ route('klaim.evidence', $klaim->id) }}" target="_blank" class="block w-48 rounded-lg overflow-hidden border border-gray-200 hover:ring-2 hover:ring-accent transition">
+                            <img src="{{ route('klaim.evidence', $klaim->id) }}" class="w-full h-auto object-cover">
                         </a>
                     @endif
                 </div>
@@ -68,7 +68,7 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="w-full h-32 bg-gray-100">
                     @if($klaim->laporan->fotoUtama())
-                        <img src="{{ Storage::url($klaim->laporan->fotoUtama()->file_path) }}" class="w-full h-full object-cover">
+                        <img src="@mediaUrl($klaim->laporan->fotoUtama()->file_path)" class="w-full h-full object-cover">
                     @endif
                 </div>
                 <div class="p-5">

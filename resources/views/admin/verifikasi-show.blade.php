@@ -49,8 +49,8 @@
 
                     @if($klaim->foto_bukti)
                         <h3 class="text-sm font-bold text-gray-900 mt-6 mb-3">📸 Foto Bukti</h3>
-                        <a href="{{ Storage::url($klaim->foto_bukti) }}" target="_blank" class="block w-64 rounded-lg overflow-hidden border-2 border-gray-200 hover:ring-4 hover:ring-accent/20 transition">
-                            <img src="{{ Storage::url($klaim->foto_bukti) }}" class="w-full h-auto object-cover">
+                        <a href="{{ route('klaim.evidence', $klaim->id) }}" target="_blank" class="block w-64 rounded-lg overflow-hidden border-2 border-gray-200 hover:ring-4 hover:ring-accent/20 transition">
+                            <img src="{{ route('klaim.evidence', $klaim->id) }}" class="w-full h-auto object-cover">
                         </a>
                     @endif
                 </div>
@@ -90,7 +90,7 @@
             @if($klaim->verifikasi)
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h3 class="text-sm font-bold text-gray-900 mb-2">Hasil Verifikasi</h3>
-                    <p class="text-sm text-gray-600 mb-1"><strong>Status:</strong> {{ ucfirst($klaim->verifikasi->status) }}</p>
+                    <p class="text-sm text-gray-600 mb-1"><strong>Status:</strong> {{ ucfirst($klaim->verifikasi->hasil) }}</p>
                     <p class="text-sm text-gray-600 mb-1"><strong>Admin:</strong> {{ $klaim->verifikasi->admin->name ?? '-' }}</p>
                     <p class="text-sm text-gray-600"><strong>Catatan:</strong> {{ $klaim->verifikasi->catatan }}</p>
                 </div>
@@ -102,7 +102,7 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 @if($klaim->laporan->fotos->count() > 0)
                     <div class="w-full h-48 bg-gray-100">
-                        <img src="{{ Storage::url($klaim->laporan->fotos->first()->file_path) }}" class="w-full h-full object-cover">
+                        <img src="@mediaUrl($klaim->laporan->fotos->first()->file_path)" class="w-full h-full object-cover">
                     </div>
                 @endif
                 <div class="p-5">

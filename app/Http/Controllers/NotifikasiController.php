@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class NotifikasiController extends Controller
@@ -11,7 +10,7 @@ class NotifikasiController extends Controller
     {
         $user = Auth::user();
         $notifikasis = $user->notifications()->paginate(15);
-        
+
         return view('notifikasi.index', compact('notifikasis'));
     }
 
@@ -20,8 +19,10 @@ class NotifikasiController extends Controller
         $notification = Auth::user()->notifications()->findOrFail($id);
         $notification->markAsRead();
 
-        if (isset($notification->data['url'])) {
-            return redirect($notification->data['url']);
+        $url = $notification->data['url'] ?? null;
+
+        if (is_string($url) && str_starts_with($url, '/') && ! str_starts_with($url, '//')) {
+            return redirect()->to($url);
         }
 
         return back();
@@ -30,7 +31,7 @@ class NotifikasiController extends Controller
     public function markAllAsRead()
     {
         Auth::user()->unreadNotifications->markAsRead();
+
         return back()->with('success', 'Semua notifikasi telah ditandai sebagai dibaca.');
     }
 }
-

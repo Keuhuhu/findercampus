@@ -45,7 +45,7 @@
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden shrink-0">
                                 @if($klaim->laporan->fotoUtama())
-                                    <img src="{{ Storage::url($klaim->laporan->fotoUtama()->file_path) }}" class="w-full h-full object-cover">
+                                    <img src="@mediaUrl($klaim->laporan->fotoUtama()->file_path)" class="w-full h-full object-cover">
                                 @endif
                             </div>
                             <div>
@@ -75,7 +75,7 @@
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden shrink-0">
                                 @if($laporan->fotoUtama())
-                                    <img src="{{ Storage::url($laporan->fotoUtama()->file_path) }}" class="w-full h-full object-cover">
+                                    <img src="@mediaUrl($laporan->fotoUtama()->file_path)" class="w-full h-full object-cover">
                                 @endif
                             </div>
                             <div>

@@ -25,7 +25,7 @@ class RegisterController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'whatsapp' => ['required', 'string', 'max:20'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'terms' => ['required']
+            'terms' => ['required'],
         ]);
 
         $user = User::create([
@@ -33,7 +33,7 @@ class RegisterController extends Controller
             'nim_nip' => $request->nim_nip,
             'fakultas' => $request->fakultas,
             'email' => $request->email,
-            'no_whatsapp' => $request->whatsapp,
+            'whatsapp' => $request->whatsapp,
             'password' => Hash::make($request->password),
             'role' => 'user',
         ]);

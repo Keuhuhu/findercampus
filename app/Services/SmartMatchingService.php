@@ -3,126 +3,210 @@
 namespace App\Services;
 
 use App\Models\Laporan;
-use Illuminate\Support\Collection;
+use App\Models\User;
+use App\Notifications\MatchDitemukanNotification;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class SmartMatchingService
 {
-    const BOBOT = [
+    public const AMBANG_SKOR = 20;
+
+    private const BOBOT = [
         'kategori' => 0.25,
-        'lokasi'   => 0.25,
-        'waktu'    => 0.20,
-        'ciri'     => 0.20,
-        'warna'    => 0.10,
+        'lokasi' => 0.25,
+        'waktu' => 0.20,
+        'ciri' => 0.20,
+        'warna' => 0.10,
     ];
 
     /**
-     * Hitung tingkat kecocokan antar 2 laporan (1 hilang, 1 ditemukan)
+     * @return array{skor_total: int, utilitas: array<string, float>}
      */
     public function hitungKecocokan(Laporan $hilang, Laporan $ditemukan): array
     {
         $utilitas = [
             'kategori' => $this->utilitasKategori($hilang, $ditemukan),
-            'lokasi'   => $this->utilitasLokasi($hilang, $ditemukan),
-            'waktu'    => $this->utilitasWaktu($hilang, $ditemukan),
-            'ciri'     => $this->utilitasCiri($hilang, $ditemukan),
-            'warna'    => $this->utilitasWarna($hilang, $ditemukan),
+            'lokasi' => $this->utilitasLokasi($hilang, $ditemukan),
+            'waktu' => $this->utilitasWaktu($hilang, $ditemukan),
+            'ciri' => $this->utilitasCiri($hilang, $ditemukan),
+            'warna' => $this->utilitasWarna($hilang, $ditemukan),
         ];
 
-        $skorTotal = 0;
+        $skorTotal = 0.0;
+
         foreach ($utilitas as $kriteria => $nilai) {
             $skorTotal += $nilai * self::BOBOT[$kriteria];
         }
 
         return [
-            'skor_total' => round($skorTotal * 100), // Persentase (0-100)
-            'utilitas'   => $utilitas, // Nilai mentah (0.0 - 1.0)
+            'skor_total' => (int) round($skorTotal * 100),
+            'utilitas' => $utilitas,
         ];
     }
 
-    /**
-     * Cari semua laporan 'ditemukan' yang cocok dengan 1 laporan 'hilang'
-     */
-    public function cariKecocokanUntuk(Laporan $hilang): Collection
+    public function cariKecocokanUntuk(Laporan $laporan): Collection
     {
-        // Ambil semua laporan 'ditemukan' yang masih aktif
-        $semuaDitemukan = Laporan::with(['fotos', 'lokasi', 'kategori'])
-            ->where('tipe', 'ditemukan')
+        $tipePembanding = $laporan->tipe === 'hilang' ? 'ditemukan' : 'hilang';
+
+        return Laporan::with(['fotos', 'lokasi', 'kategori'])
+            ->where('tipe', $tipePembanding)
             ->where('status', 'aktif')
-            ->get();
+            ->get()
+            ->map(function (Laporan $pembanding) use ($laporan): Laporan {
+                $hilang = $laporan->tipe === 'hilang' ? $laporan : $pembanding;
+                $ditemukan = $laporan->tipe === 'ditemukan' ? $laporan : $pembanding;
+                $analisis = $this->hitungKecocokan($hilang, $ditemukan);
 
-        $hasil = $semuaDitemukan->map(function ($ditemukan) use ($hilang) {
-            $analisis = $this->hitungKecocokan($hilang, $ditemukan);
-            $ditemukan->smart_score = $analisis['skor_total'];
-            $ditemukan->smart_detail = $analisis['utilitas'];
-            return $ditemukan;
-        });
+                $pembanding->smart_score = $analisis['skor_total'];
+                $pembanding->smart_detail = $analisis['utilitas'];
 
-        // Urutkan berdasarkan skor tertinggi, filter skor > 20%
-        return $hasil->filter(fn($item) => $item->smart_score > 20)
-                     ->sortByDesc('smart_score')
-                     ->values();
+                return $pembanding;
+            })
+            ->filter(fn (Laporan $match): bool => $match->smart_score > self::AMBANG_SKOR)
+            ->sortByDesc('smart_score')
+            ->values();
+    }
+
+    public function notifyMatchesFor(Laporan $laporan): void
+    {
+        if ($laporan->status !== 'aktif') {
+            return;
+        }
+
+        foreach ($this->cariKecocokanUntuk($laporan) as $pembanding) {
+            $hilang = $laporan->tipe === 'hilang' ? $laporan : $pembanding;
+            $ditemukan = $laporan->tipe === 'ditemukan' ? $laporan : $pembanding;
+            $matchKey = $hilang->id.':'.$ditemukan->id;
+
+            DB::transaction(function () use ($hilang, $ditemukan, $matchKey): void {
+                $laporans = Laporan::query()
+                    ->whereIn('id', [$hilang->id, $ditemukan->id])
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id');
+
+                $lockedHilang = $laporans->get($hilang->id);
+                $lockedDitemukan = $laporans->get($ditemukan->id);
+
+                if (! $lockedHilang || ! $lockedDitemukan
+                    || $lockedHilang->tipe !== 'hilang'
+                    || $lockedDitemukan->tipe !== 'ditemukan'
+                    || $lockedHilang->status !== 'aktif'
+                    || $lockedDitemukan->status !== 'aktif') {
+                    return;
+                }
+
+                $skor = $this->hitungKecocokan($lockedHilang, $lockedDitemukan)['skor_total'];
+
+                if ($skor <= self::AMBANG_SKOR) {
+                    return;
+                }
+
+                $pemilikLaporanHilang = User::query()->find($lockedHilang->user_id);
+                $pemilikLaporanTemuan = User::query()->find($lockedDitemukan->user_id);
+                $penerima = collect([
+                    [$pemilikLaporanHilang, $lockedHilang, $lockedDitemukan],
+                    [$pemilikLaporanTemuan, $lockedDitemukan, $lockedHilang],
+                ])->filter(fn (array $entry): bool => $entry[0] !== null)
+                    ->unique(fn (array $entry): int => $entry[0]->id);
+
+                foreach ($penerima as [$user, $laporanMilikUser, $laporanCocok]) {
+                    $matchPattern = '%"match_key":"'.$matchKey.'"%';
+                    $alreadyNotified = $user->notifications()
+                        ->where('type', MatchDitemukanNotification::class)
+                        ->whereRaw('CAST(data AS TEXT) LIKE ?', [$matchPattern])
+                        ->exists();
+
+                    if (! $alreadyNotified) {
+                        $user->notify(new MatchDitemukanNotification(
+                            $laporanMilikUser,
+                            $laporanCocok,
+                            $skor,
+                            $matchKey,
+                        ));
+                    }
+                }
+            }, 3);
+        }
     }
 
     private function utilitasKategori(Laporan $hilang, Laporan $ditemukan): float
     {
-        return $hilang->kategori_id === $ditemukan->kategori_id ? 1.0 : 0.0;
+        return (int) $hilang->kategori_id === (int) $ditemukan->kategori_id ? 1.0 : 0.0;
     }
 
     private function utilitasLokasi(Laporan $hilang, Laporan $ditemukan): float
     {
-        return $hilang->lokasi_id === $ditemukan->lokasi_id ? 1.0 : 0.0;
+        return (int) $hilang->lokasi_id === (int) $ditemukan->lokasi_id ? 1.0 : 0.0;
     }
 
     private function utilitasWaktu(Laporan $hilang, Laporan $ditemukan): float
     {
-        $tglHilang = Carbon::parse($hilang->tanggal_kejadian);
-        $tglDitemukan = Carbon::parse($ditemukan->tanggal_kejadian);
-        
-        // Asumsi: barang ditemukan setelah atau di hari yang sama saat hilang
-        // Jika ditemukan sebelum hilang, logikanya tidak cocok
-        if ($tglDitemukan->isBefore($tglHilang)) {
+        $tanggalHilang = Carbon::parse($hilang->tanggal_kejadian);
+        $tanggalDitemukan = Carbon::parse($ditemukan->tanggal_kejadian);
+
+        if ($tanggalDitemukan->isBefore($tanggalHilang)) {
             return 0.0;
         }
 
-        $selisihHari = $tglHilang->diffInDays($tglDitemukan);
+        $selisihHari = $tanggalHilang->diffInDays($tanggalDitemukan);
 
-        if ($selisihHari <= 1) return 1.00;
-        if ($selisihHari <= 3) return 0.75;
-        if ($selisihHari <= 7) return 0.50;
-        if ($selisihHari <= 14) return 0.25;
-        
-        return 0.00;
+        if ($selisihHari <= 1) {
+            return 1.0;
+        }
+
+        if ($selisihHari <= 3) {
+            return 0.75;
+        }
+
+        if ($selisihHari <= 7) {
+            return 0.50;
+        }
+
+        if ($selisihHari <= 14) {
+            return 0.25;
+        }
+
+        return 0.0;
     }
 
     private function utilitasCiri(Laporan $hilang, Laporan $ditemukan): float
     {
-        // Pencocokan keyword sederhana dari ciri_khusus dan nama_barang
-        $teksHilang = strtolower($hilang->nama_barang . ' ' . $hilang->ciri_khusus);
-        $teksDitemukan = strtolower($ditemukan->nama_barang . ' ' . $ditemukan->ciri_khusus);
+        $teksHilang = strtolower($hilang->nama_barang.' '.($hilang->ciri_khusus ?? ''));
+        $teksDitemukan = strtolower($ditemukan->nama_barang.' '.($ditemukan->ciri_khusus ?? ''));
+        $kataHilang = array_filter(str_word_count($teksHilang, 1), fn (string $kata): bool => strlen($kata) > 3);
+        $kataDitemukan = array_filter(str_word_count($teksDitemukan, 1), fn (string $kata): bool => strlen($kata) > 3);
 
-        // Hapus tanda baca dan split jadi array kata
-        $kataHilang = array_filter(str_word_count($teksHilang, 1), fn($w) => strlen($w) > 3);
-        $kataDitemukan = array_filter(str_word_count($teksDitemukan, 1), fn($w) => strlen($w) > 3);
-
-        if (empty($kataHilang) || empty($kataDitemukan)) {
-            return 0.0; // Tidak bisa dicocokkan
+        if ($kataHilang === [] || $kataDitemukan === []) {
+            return 0.0;
         }
 
-        $cocok = array_intersect($kataHilang, $kataDitemukan);
-        $persentase = count($cocok) / count($kataHilang);
+        $persentase = count(array_intersect($kataHilang, $kataDitemukan)) / count($kataHilang);
 
-        if ($persentase >= 0.8) return 1.00;
-        if ($persentase >= 0.6) return 0.75;
-        if ($persentase >= 0.4) return 0.50;
-        if ($persentase >= 0.2) return 0.25;
+        if ($persentase >= 0.8) {
+            return 1.0;
+        }
 
-        return 0.00;
+        if ($persentase >= 0.6) {
+            return 0.75;
+        }
+
+        if ($persentase >= 0.4) {
+            return 0.5;
+        }
+
+        if ($persentase >= 0.2) {
+            return 0.25;
+        }
+
+        return 0.0;
     }
 
     private function utilitasWarna(Laporan $hilang, Laporan $ditemukan): float
     {
-        return strtolower($hilang->warna) === strtolower($ditemukan->warna) ? 1.0 : 0.0;
+        return strtolower((string) $hilang->warna) === strtolower((string) $ditemukan->warna) ? 1.0 : 0.0;
     }
 }
-

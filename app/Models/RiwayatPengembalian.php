@@ -6,16 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class RiwayatPengembalian extends Model
 {
-    protected $fillable = ['laporan_id', 'klaim_id', 'dikonfirmasi_oleh', 'tanggal_pengembalian', 'metode_pengembalian', 'catatan'];
+    protected $fillable = ['klaim_id', 'dikonfirmasi_oleh', 'tanggal_pengembalian', 'metode_pengembalian', 'catatan'];
 
     protected $casts = [
         'tanggal_pengembalian' => 'datetime',
     ];
-
-    public function laporan()
-    {
-        return $this->belongsTo(Laporan::class);
-    }
 
     public function klaim()
     {
@@ -27,4 +22,3 @@ class RiwayatPengembalian extends Model
         return $this->belongsTo(User::class, 'dikonfirmasi_oleh');
     }
 }
-

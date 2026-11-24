@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Bukti Pengembalian — {{ $riwayat->laporan->kode_laporan }}</title>
+    <title>Bukti Pengembalian — {{ $riwayat->klaim->laporan->kode_laporan }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 12px; color: #1a1a1a; padding: 40px; }
@@ -58,32 +58,32 @@
         <table class="info">
             <tr>
                 <td class="label">Kode Laporan</td>
-                <td class="value">{{ $riwayat->laporan->kode_laporan }}</td>
+                <td class="value">{{ $riwayat->klaim->laporan->kode_laporan }}</td>
             </tr>
             <tr>
                 <td class="label">Nama Barang</td>
-                <td class="value">{{ $riwayat->laporan->nama_barang }}</td>
+                <td class="value">{{ $riwayat->klaim->laporan->nama_barang }}</td>
             </tr>
             <tr>
                 <td class="label">Kategori</td>
-                <td class="value">{{ $riwayat->laporan->kategori->nama }}</td>
+                <td class="value">{{ $riwayat->klaim->laporan->kategori->nama }}</td>
             </tr>
             <tr>
                 <td class="label">Warna</td>
-                <td class="value">{{ $riwayat->laporan->warna }}</td>
+                <td class="value">{{ $riwayat->klaim->laporan->warna }}</td>
             </tr>
             <tr>
                 <td class="label">Lokasi Ditemukan</td>
-                <td class="value">{{ $riwayat->laporan->lokasi->nama }}</td>
+                <td class="value">{{ $riwayat->klaim->laporan->lokasi->nama }}</td>
             </tr>
             <tr>
                 <td class="label">Tanggal Kejadian</td>
-                <td class="value">{{ $riwayat->laporan->tanggal_kejadian->translatedFormat('d F Y') }}</td>
+                <td class="value">{{ $riwayat->klaim->laporan->tanggal_kejadian->translatedFormat('d F Y') }}</td>
             </tr>
-            @if($riwayat->laporan->ciri_khusus)
+            @if($riwayat->klaim->laporan->ciri_khusus)
             <tr>
                 <td class="label">Ciri Khusus</td>
-                <td class="value">{{ $riwayat->laporan->ciri_khusus }}</td>
+                <td class="value">{{ $riwayat->klaim->laporan->ciri_khusus }}</td>
             </tr>
             @endif
         </table>
@@ -96,9 +96,9 @@
             <div class="col">
                 <table class="info">
                     <tr><td colspan="2" style="font-weight:700; color:#1e40af; padding-bottom:6px;">Pelapor (Penemu)</td></tr>
-                    <tr><td class="label">Nama</td><td class="value">{{ $riwayat->laporan->user->name }}</td></tr>
-                    <tr><td class="label">NIM/NIP</td><td class="value">{{ $riwayat->laporan->user->nim_nip ?? '-' }}</td></tr>
-                    <tr><td class="label">Fakultas</td><td class="value">{{ $riwayat->laporan->user->fakultas ?? '-' }}</td></tr>
+                    <tr><td class="label">Nama</td><td class="value">{{ $riwayat->klaim->laporan->user->name }}</td></tr>
+                    <tr><td class="label">NIM/NIP</td><td class="value">{{ $riwayat->klaim->laporan->user->nim_nip ?? '-' }}</td></tr>
+                    <tr><td class="label">Fakultas</td><td class="value">{{ $riwayat->klaim->laporan->user->fakultas ?? '-' }}</td></tr>
                 </table>
             </div>
             <div class="col">
@@ -142,7 +142,7 @@
     <div class="signatures">
         <div class="sig-box">
             <div class="sig-line"></div>
-            <div class="sig-name">{{ $riwayat->laporan->user->name }}</div>
+            <div class="sig-name">{{ $riwayat->klaim->laporan->user->name }}</div>
             <div class="sig-role">Pelapor / Penemu</div>
         </div>
         <div class="sig-box">

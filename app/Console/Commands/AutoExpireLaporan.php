@@ -20,27 +20,26 @@ class AutoExpireLaporan extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
-        $days = (int) $this->option('days');
+        $days = max(1, (int) $this->option('days'));
         $batasWaktu = now()->subDays($days);
 
-        $laporanExpired = Laporan::where('status', 'aktif')
+        $count = Laporan::where('status', 'aktif')
             ->where('created_at', '<=', $batasWaktu)
-            ->get();
+            ->update([
+                'status' => 'expired',
+                'expired_at' => now(),
+                'updated_at' => now(),
+            ]);
 
-        if ($laporanExpired->isEmpty()) {
+        if ($count === 0) {
             $this->info('Tidak ada laporan yang perlu di-expire.');
+
             return Command::SUCCESS;
         }
 
-        $count = 0;
-        foreach ($laporanExpired as $laporan) {
-            $laporan->update(['status' => 'kedaluwarsa']);
-            $count++;
-        }
-
-        $this->info("Berhasil menandai {$count} laporan sebagai kedaluwarsa (lebih dari {$days} hari).");
+        $this->info("Berhasil menandai {$count} laporan sebagai expired (lebih dari {$days} hari).");
 
         return Command::SUCCESS;
     }
