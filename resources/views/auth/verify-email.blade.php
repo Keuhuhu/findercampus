@@ -33,6 +33,12 @@
             </div>
         @endif
 
+        @if(session('status') === 'registration-verification-sent')
+            <div class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800" role="status">
+                Email verifikasi untuk mengaktifkan akun sudah dikirim ke alamat email Anda.
+            </div>
+        @endif
+
         @if(session('verification-mail-error'))
             <div class="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
                 {{ session('verification-mail-error') }}

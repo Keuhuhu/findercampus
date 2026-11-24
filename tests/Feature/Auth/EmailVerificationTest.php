@@ -122,7 +122,9 @@ class EmailVerificationTest extends TestCase
         $this->actingAs($user);
 
         for ($attempt = 0; $attempt < 6; $attempt++) {
-            $this->post(route('verification.send'))->assertRedirect();
+            $this->post(route('verification.send'))
+                ->assertRedirect()
+                ->assertSessionHas('status', 'verification-link-sent');
         }
 
         $this->post(route('verification.send'))->assertTooManyRequests();

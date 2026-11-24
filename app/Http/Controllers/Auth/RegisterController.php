@@ -54,6 +54,6 @@ class RegisterController extends Controller
             return redirect()->route('verification.notice')->with('verification-mail-error', 'Akun berhasil dibuat, tetapi email verifikasi belum dapat dikirim. Coba kirim ulang dari halaman ini.');
         }
 
-        return redirect()->route('verification.notice')->with('status', 'verification-link-sent');
+        return redirect()->route('verification.notice')->with('status', 'registration-verification-sent');
     }
 }

@@ -13,6 +13,13 @@ class RegisterControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+    }
+
     public function test_registration_saves_whatsapp_to_the_user_record(): void
     {
         Notification::fake();
@@ -26,7 +33,10 @@ class RegisterControllerTest extends TestCase
             'password' => 'StrongPassword123!',
             'password_confirmation' => 'StrongPassword123!',
             'terms' => 'yes',
-        ])->assertRedirect(route('verification.notice'));
+        ])
+            ->assertRedirect(route('verification.notice'))
+            ->assertSessionHas('status', 'registration-verification-sent')
+            ->assertSessionMissing('status', 'verification-link-sent');
 
         $user = User::where('email', 'finder-user@example.test')->firstOrFail();
 
@@ -36,5 +46,10 @@ class RegisterControllerTest extends TestCase
         $this->assertNull($user->email_verified_at);
         $this->assertAuthenticatedAs($user);
         Notification::assertSentTo($user, VerifyEmail::class);
+
+        $this->get(route('verification.notice'))
+            ->assertOk()
+            ->assertSee('Email verifikasi untuk mengaktifkan akun sudah dikirim')
+            ->assertDontSee('Tautan verifikasi baru sudah dikirim');
     }
 }
