@@ -35,6 +35,10 @@ class LaporanController extends Controller
             $query->where('kategori_id', $request->kategori);
         }
 
+        if ($request->filled('lokasi')) {
+            $query->where('lokasi_id', $request->lokasi);
+        }
+
         if ($request->filled('q')) {
             $query->where('nama_barang', 'like', '%'.$request->q.'%');
         }
@@ -63,8 +67,7 @@ class LaporanController extends Controller
         QrCodeService $qrCodeService,
         SmartMatchingService $smartMatchingService,
         ReportImageUploadService $imageUploads,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $photoRules = $imageUploads->supportsSignedUploads()
             ? ['foto' => ['prohibited'], 'photo_upload_ids' => ['nullable', 'array', 'max:5'], 'photo_upload_ids.*' => ['required', 'uuid', 'distinct']]
             : ['foto' => ['nullable', 'array', 'max:5'], 'foto.*' => ['image', 'mimes:jpeg,png,jpg,webp', 'extensions:jpg,jpeg,png,webp', 'max:5120'], 'photo_upload_ids' => ['prohibited']];

@@ -69,11 +69,11 @@
                         </div>
                         
                         @if(! $laporan->trashed() && $laporan->tipe === 'ditemukan' && Auth::id() !== $laporan->user_id && $laporan->status === 'aktif')
-                            <a href="{{ route('klaim.create', $laporan) }}" class="inline-flex items-center justify-center px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-black transition shadow-md">
+                            <a href="{{ route('klaim.create', $laporan) }}" class="inline-flex items-center justify-center px-6 py-3 bg-indigo-600/90 text-white font-bold rounded-xl hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 transition shadow-md">
                                 Ajukan klaim kepemilikan
                             </a>
                         @elseif(! $laporan->trashed() && $laporan->tipe === 'hilang' && $laporan->status === 'aktif')
-                            <a href="{{ route('laporan.create', ['tipe' => 'ditemukan']) }}" class="inline-flex items-center justify-center px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-black transition shadow-md">
+                            <a href="{{ route('laporan.create', ['tipe' => 'ditemukan']) }}" class="inline-flex items-center justify-center px-6 py-3 bg-emerald-600/90 text-white font-bold rounded-xl hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 transition shadow-md">
                                 Saya menemukan barang seperti ini
                             </a>
                         @endif

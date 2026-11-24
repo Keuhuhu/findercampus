@@ -5,25 +5,28 @@
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center gap-2">
                     <a href="/dashboard" class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-indigo-600 rounded-md flex items-center justify-center text-white font-bold text-lg">
+                        <div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-white font-bold text-lg">
                             F
                         </div>
-                        <span class="text-xl font-bold text-indigo-600 hidden sm:block">FinderCampus</span>
+                        <span class="text-xl font-bold text-primary hidden sm:block">FinderCampus</span>
                     </a>
                 </div>
 
                 <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <a href="/dashboard" class="inline-flex items-center px-4 pt-1 border-b-2 {{ request()->is('dashboard') ? 'border-accent text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} text-sm transition duration-150 ease-in-out">
+                <div class="hidden space-x-3 lg:-my-px lg:ms-6 lg:flex">
+                    <a href="/dashboard" class="inline-flex items-center px-2 pt-1 border-b-2 {{ request()->is('dashboard') ? 'border-accent text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} text-sm transition duration-150 ease-in-out">
                         Dashboard
                     </a>
-                    <a href="/laporan/buat" class="inline-flex items-center px-4 pt-1 border-b-2 {{ request()->is('laporan/buat') ? 'border-accent text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} text-sm transition duration-150 ease-in-out">
+                    <a href="{{ route('laporan.index') }}" class="inline-flex items-center px-2 pt-1 border-b-2 {{ request()->routeIs('laporan.index') ? 'border-accent text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} text-sm transition duration-150 ease-in-out">
+                        Semua Laporan
+                    </a>
+                    <a href="/laporan/buat" class="inline-flex items-center px-2 pt-1 border-b-2 {{ request()->is('laporan/buat') ? 'border-accent text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} text-sm transition duration-150 ease-in-out">
                         Lapor Barang
                     </a>
-                    <a href="/pencarian" class="inline-flex items-center px-4 pt-1 border-b-2 {{ request()->is('pencarian') ? 'border-accent text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} text-sm transition duration-150 ease-in-out">
+                    <a href="/pencarian" class="inline-flex items-center px-2 pt-1 border-b-2 {{ request()->is('pencarian') ? 'border-accent text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} text-sm transition duration-150 ease-in-out">
                         Pencarian
                     </a>
-                    <a href="/status" class="inline-flex items-center px-4 pt-1 border-b-2 {{ request()->is('status') ? 'border-accent text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} text-sm transition duration-150 ease-in-out">
+                    <a href="/status" class="inline-flex items-center px-2 pt-1 border-b-2 {{ request()->is('status') ? 'border-accent text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} text-sm transition duration-150 ease-in-out">
                         Status & Klaim
                     </a>
                 </div>
@@ -101,8 +104,11 @@
                                 {{ Auth::check() ? substr(Auth::user()->name, 0, 1) : 'U' }}
                             </div>
                         @endif
-                        <div class="hidden md:flex flex-col items-start">
+                        <div class="hidden sm:flex flex-col items-start">
                             <span class="text-sm font-semibold text-gray-700 leading-tight">{{ Auth::check() ? explode(' ', Auth::user()->name)[0] : 'User' }}</span>
+                            @if(Auth::check() && Auth::user()->isAdmin())
+                                <span class="admin-role-badge">Administrator</span>
+                            @endif
                         </div>
                         <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" :class="profileOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -148,7 +154,10 @@
             </div>
 
             <!-- Hamburger -->
-            <div class="-me-2 flex items-center sm:hidden">
+            <div class="-me-2 flex items-center lg:hidden">
+                @if(Auth::check() && Auth::user()->isAdmin())
+                    <span class="admin-role-badge me-2">Administrator</span>
+                @endif
                 <button @click="open = !open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -160,10 +169,13 @@
     </div>
 
     <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-white border-b border-gray-200">
+    <div :class="{'block': open, 'hidden': ! open}" class="hidden lg:hidden bg-white border-b border-gray-200">
         <div class="pt-2 pb-3 space-y-1">
             <a href="/dashboard" class="block ps-3 pe-4 py-2 border-l-4 {{ request()->is('dashboard') ? 'border-accent text-accent bg-blue-50' : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300' }} text-base font-medium transition duration-150 ease-in-out">
                 Dashboard
+            </a>
+            <a href="{{ route('laporan.index') }}" class="block ps-3 pe-4 py-2 border-l-4 {{ request()->routeIs('laporan.index') ? 'border-accent text-accent bg-blue-50' : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300' }} text-base font-medium transition duration-150 ease-in-out">
+                Semua Laporan
             </a>
             <a href="/laporan/buat" class="block ps-3 pe-4 py-2 border-l-4 {{ request()->is('laporan/buat') ? 'border-accent text-accent bg-blue-50' : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300' }} text-base font-medium transition duration-150 ease-in-out">
                 Lapor Barang
@@ -189,6 +201,9 @@
             <div class="px-4">
                 <div class="font-medium text-base text-gray-800">{{ Auth::check() ? Auth::user()->name : 'User' }}</div>
                 <div class="font-medium text-sm text-gray-500">{{ Auth::check() ? Auth::user()->email : '' }}</div>
+                @if(Auth::check() && Auth::user()->isAdmin())
+                    <span class="admin-role-badge mt-2">Administrator</span>
+                @endif
             </div>
 
             <div class="mt-3 space-y-1">

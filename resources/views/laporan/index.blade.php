@@ -1,18 +1,27 @@
 <x-app-layout>
     <x-slot name="breadcrumb">
-        <x-breadcrumb :breadcrumbs="['Jelajahi Temuan' => '#']" />
+        <x-breadcrumb :breadcrumbs="['Semua Laporan' => '#']" />
     </x-slot>
 
     <x-slot name="header">
-        <h1 class="text-2xl font-bold text-gray-900">Jelajahi Semua Temuan</h1>
-        <p class="text-sm text-gray-500 mt-1">Daftar barang temuan terbaru yang diserahkan ke posko kampus.</p>
+        <h1 class="text-2xl font-bold text-gray-900">Semua Laporan Aktif</h1>
+        <p class="text-sm text-gray-500 mt-1">Telusuri laporan barang hilang dan ditemukan di kampus.</p>
     </x-slot>
 
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-8">
-        <form action="/laporan" method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form action="{{ route('laporan.index') }}" method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div class="md:col-span-1">
-                <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari barang..." class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+                <label class="sr-only" for="report-search">Cari barang</label>
+                <input id="report-search" type="text" name="q" value="{{ request('q') }}" placeholder="Cari barang..." class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+            </div>
+            <div class="md:col-span-1">
+                <label class="sr-only" for="report-type">Jenis laporan</label>
+                <select id="report-type" name="tipe" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent">
+                    <option value="" {{ request('tipe') === null || request('tipe') === '' ? 'selected' : '' }}>Semua tipe</option>
+                    <option value="hilang" {{ request('tipe') === 'hilang' ? 'selected' : '' }}>Hilang</option>
+                    <option value="ditemukan" {{ request('tipe') === 'ditemukan' ? 'selected' : '' }}>Ditemukan</option>
+                </select>
             </div>
             <div class="md:col-span-1 relative">
                 @php
@@ -42,10 +51,10 @@
                     selected="{{ request('lokasi') }}"
                 />
             </div>
-            <div class="md:col-span-1 flex gap-2">
-                <button type="submit" class="flex-1 px-4 py-2 bg-gray-900 text-white font-semibold text-sm rounded-lg hover:bg-black transition">Filter</button>
-                @if(request()->anyFilled(['q', 'kategori', 'lokasi']))
-                    <a href="/laporan" class="px-4 py-2 bg-gray-100 text-gray-600 font-semibold text-sm rounded-lg hover:bg-gray-200 transition text-center">Reset</a>
+            <div class="md:col-span-2 lg:col-span-1 flex gap-2">
+                <button type="submit" class="flex-1 px-4 py-2 bg-primary/90 text-white font-semibold text-sm rounded-lg hover:bg-primary-dark transition">Filter</button>
+                @if(request()->anyFilled(['q', 'tipe', 'kategori', 'lokasi']))
+                    <a href="{{ route('laporan.index') }}" class="px-4 py-2 bg-gray-100 text-gray-600 font-semibold text-sm rounded-lg hover:bg-gray-200 transition text-center">Reset</a>
                 @endif
             </div>
         </form>
@@ -60,7 +69,7 @@
                 <svg class="mx-auto h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p class="text-gray-500 font-medium">Tidak ada temuan yang sesuai filter.</p>
+                <p class="text-gray-500 font-medium">Tidak ada laporan yang sesuai filter.</p>
             </div>
         @endforelse
     </div>

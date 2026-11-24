@@ -81,7 +81,13 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-8">
                 <div class="p-6 text-gray-900">
-                    <h3 class="text-lg font-bold mb-4">Laporan Terbaru di Kampus</h3>
+                    <div class="flex items-center justify-between gap-4 mb-4">
+                        <div>
+                            <h3 class="text-lg font-bold">Laporan Terbaru di Kampus</h3>
+                            <p class="mt-1 text-sm text-gray-500">Pratinjau enam laporan aktif terbaru.</p>
+                        </div>
+                        <a href="{{ route('laporan.index') }}" class="shrink-0 text-sm font-semibold text-primary hover:underline">Lihat semua laporan</a>
+                    </div>
                     @if(isset($laporanTerbaru) && count($laporanTerbaru) > 0)
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             @foreach($laporanTerbaru as $lap)

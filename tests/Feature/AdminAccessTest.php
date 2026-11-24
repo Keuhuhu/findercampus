@@ -43,4 +43,30 @@ class AdminAccessTest extends TestCase
         $this->get('/admin')->assertOk();
         $this->get('/admin/dashboard')->assertRedirect(route('admin.dashboard'));
     }
+
+    public function test_admin_identity_is_visible_across_pages_and_users_do_not_get_admin_theme(): void
+    {
+        $this->withoutVite();
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['role' => 'user']);
+
+        $this->actingAs($admin)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee('Administrator')
+            ->assertSee('admin-session', false)
+            ->assertDontSee('Mode Administrator');
+
+        $this->get('/admin')
+            ->assertOk()
+            ->assertSee('Mode Administrator')
+            ->assertSee('Panel admin');
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertDontSee('Administrator')
+            ->assertDontSee('admin-session', false)
+            ->assertDontSee('Mode Administrator');
+    }
 }

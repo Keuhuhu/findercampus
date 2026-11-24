@@ -9,7 +9,8 @@
     <!-- Scripts and Styles -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+@php($isAdminSession = Auth::check() && Auth::user()->isAdmin())
+<body class="font-sans antialiased bg-gray-50 text-gray-800 min-h-screen flex flex-col {{ $isAdminSession ? 'admin-session' : '' }}">
 
     <!-- Toast Flash Messages -->
     @if(session('success') || session('error') || session('warning'))
@@ -37,6 +38,16 @@
 
     <!-- Navbar -->
     <x-navbar />
+
+    @if($isAdminSession && request()->is('admin*'))
+        <div class="admin-mode-banner" role="status">
+            <div>
+                <p class="admin-mode-banner__title">Mode Administrator</p>
+                <p class="admin-mode-banner__description">Anda sedang berada di area pengelolaan FinderCampus.</p>
+            </div>
+            <span class="admin-mode-banner__label">Panel admin</span>
+        </div>
+    @endif
 
     <!-- Page Content -->
     <main class="flex-grow w-full max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
