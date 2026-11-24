@@ -6,6 +6,7 @@ use App\Services\AssetStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Throwable;
 
@@ -45,17 +46,39 @@ class ProfilController extends Controller
             'password' => ['nullable', 'min:8', 'confirmed'],
         ]);
 
+        $emailChanged = $user->email !== $request->email;
+
         $user->name = $request->name;
         $user->nim_nip = $request->nim_nip;
         $user->fakultas = $request->fakultas;
         $user->email = $request->email;
         $user->whatsapp = $request->whatsapp;
 
+        if ($emailChanged) {
+            $user->email_verified_at = null;
+            $user->email_verification_required = true;
+        }
+
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
         }
 
         $user->save();
+
+        if ($emailChanged) {
+            try {
+                $user->sendEmailVerificationNotification();
+            } catch (Throwable $exception) {
+                Log::warning('Email verification notification failed after email change.', [
+                    'user_id' => $user->getKey(),
+                    'exception' => $exception::class,
+                ]);
+
+                return redirect('/profil')->with('success', 'Profil diperbarui. Email baru belum terverifikasi karena tautan belum dapat dikirim.')->with('verification-mail-error', 'Silakan kirim ulang email verifikasi dari profil.');
+            }
+
+            return redirect('/profil')->with('success', 'Profil diperbarui. Silakan verifikasi email baru Anda.')->with('status', 'verification-link-sent');
+        }
 
         return redirect('/profil')->with('success', 'Profil berhasil diperbarui!');
     }

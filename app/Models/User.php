@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmailContract
 {
-    use HasFactory, Notifiable;
+    use HasFactory, MustVerifyEmail, Notifiable;
 
     protected $fillable = [
         'name',
@@ -17,6 +19,7 @@ class User extends Authenticatable
         'email',
         'whatsapp',
         'whatsapp_visible',
+        'email_verification_required',
         'password',
         'role',
         'avatar',
@@ -31,8 +34,10 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'whatsapp_visible'  => 'boolean',
+            'email_verification_required' => 'boolean',
+            'is_verified' => 'boolean',
+            'password' => 'hashed',
+            'whatsapp_visible' => 'boolean',
         ];
     }
 

@@ -7,7 +7,9 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
+use Throwable;
 
 class RegisterController extends Controller
 {
@@ -36,10 +38,22 @@ class RegisterController extends Controller
             'whatsapp' => $request->whatsapp,
             'password' => Hash::make($request->password),
             'role' => 'user',
+            'email_verification_required' => true,
         ]);
 
         Auth::login($user);
 
-        return redirect('/dashboard');
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (Throwable $exception) {
+            Log::warning('Email verification notification failed after registration.', [
+                'user_id' => $user->getKey(),
+                'exception' => $exception::class,
+            ]);
+
+            return redirect()->route('verification.notice')->with('verification-mail-error', 'Akun berhasil dibuat, tetapi email verifikasi belum dapat dikirim. Coba kirim ulang dari halaman ini.');
+        }
+
+        return redirect()->route('verification.notice')->with('status', 'verification-link-sent');
     }
 }

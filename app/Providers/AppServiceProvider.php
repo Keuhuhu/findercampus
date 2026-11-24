@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -21,6 +23,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        VerifyEmail::toMailUsing(static function ($user, string $verificationUrl): MailMessage {
+            return (new MailMessage)
+                ->subject('Verifikasi email FinderCampus')
+                ->greeting('Halo '.$user->name)
+                ->line('Klik tombol berikut untuk memverifikasi alamat email akun FinderCampus Anda.')
+                ->action('Verifikasi Email', $verificationUrl)
+                ->line('Tautan berlaku selama '.config('auth.verification.expire', 60).' menit.')
+                ->line('Jika Anda tidak membuat akun FinderCampus, abaikan email ini.');
+        });
+
         Blade::directive('mediaUrl', static function (string $expression): string {
             return "<?php echo e(app(\\App\\Services\\AssetStorage::class)->publicUrl($expression)); ?>";
         });

@@ -42,4 +42,15 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Indicate that the account must verify its email before using core features.
+     */
+    public function requiresEmailVerification(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'email_verified_at' => null,
+            'email_verification_required' => true,
+        ]);
+    }
 }
