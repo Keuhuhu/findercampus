@@ -6,6 +6,7 @@ use App\Models\FotoBarang;
 use App\Models\Laporan;
 use App\Models\User;
 use App\Notifications\MatchDitemukanNotification;
+use App\Services\ReportImageUploadService;
 use App\Services\SmartMatchingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -77,6 +78,138 @@ class LaporanControllerTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->get(route('laporan.edit', $laporan))
             ->assertForbidden();
+    }
+
+    public function test_lost_report_cards_open_details_and_offer_a_found_report(): void
+    {
+        $this->withoutVite();
+        $user = User::factory()->create();
+        $lostReport = $this->createReport($user, ['tipe' => 'hilang', 'nama_barang' => 'Kunci motor hilang']);
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee(route('laporan.show', $lostReport));
+
+        $this->get(route('laporan.show', $lostReport))
+            ->assertOk()
+            ->assertSee(route('laporan.create', ['tipe' => 'ditemukan']))
+            ->assertDontSee('Barang ini tidak tersedia untuk diklaim.');
+
+        $this->get(route('laporan.create', ['tipe' => 'ditemukan']))
+            ->assertOk()
+            ->assertSee("tipe: 'ditemukan'", false);
+    }
+
+    public function test_admin_can_edit_other_users_report_photos_and_archive_then_restore_without_losing_claims(): void
+    {
+        $this->withoutVite();
+        Storage::fake('public');
+        config(['filesystems.default' => 'public', 'filesystems.upload_driver' => 'filesystem']);
+
+        $owner = User::factory()->create();
+        $admin = User::factory()->create(['role' => 'admin']);
+        $claimant = User::factory()->create();
+        $report = $this->createReport($owner);
+        $oldPhoto = FotoBarang::create([
+            'laporan_id' => $report->id,
+            'file_path' => 'images/barangs/old-photo.jpg',
+            'is_primary' => true,
+        ]);
+        Storage::disk('public')->put($oldPhoto->file_path, 'old photo');
+        $claim = $this->createClaim($report, $claimant);
+
+        $this->actingAs($admin)
+            ->get(route('laporan.edit', $report))
+            ->assertOk()
+            ->assertSee('Hapus foto');
+
+        $this->put(route('laporan.update', $report), [
+            'nama_barang' => 'Dompet yang diperbarui',
+            'kategori_id' => $report->kategori_id,
+            'lokasi_id' => $report->lokasi_id,
+            'tanggal_kejadian' => now()->toDateString(),
+            'warna' => 'Biru',
+            'remove_foto_ids' => [$oldPhoto->id],
+            'foto' => [UploadedFile::fake()->image('new-photo.jpg', 200, 200)],
+        ])->assertRedirect(route('laporan.show', $report));
+
+        $this->assertDatabaseMissing('foto_barangs', ['id' => $oldPhoto->id]);
+        $newPhoto = $report->fresh()->fotos()->firstOrFail();
+        $this->assertTrue($newPhoto->is_primary);
+        Storage::disk('public')->assertExists($newPhoto->file_path);
+
+        $this->delete(route('laporan.destroy', $report))
+            ->assertRedirect(route('admin.laporans'));
+
+        $this->assertTrue(Laporan::withTrashed()->findOrFail($report->id)->trashed());
+        $this->assertDatabaseHas('klaims', ['id' => $claim->id, 'laporan_id' => $report->id]);
+        $this->assertSame($report->id, $claim->fresh()->laporan->id);
+
+        $this->post(route('admin.laporans.restore', $report->id))
+            ->assertRedirect(route('admin.laporans', ['archived' => true]));
+
+        $this->assertFalse(Laporan::findOrFail($report->id)->trashed());
+    }
+
+    public function test_admin_laporan_page_lists_actions_and_separates_archived_reports(): void
+    {
+        $this->withoutVite();
+        $admin = User::factory()->create(['role' => 'admin']);
+        $activeReport = $this->createReport(null, ['nama_barang' => 'Laporan yang masih aktif']);
+        $archivedReport = $this->createReport(null, ['nama_barang' => 'Laporan yang diarsipkan']);
+        $archivedReport->delete();
+
+        $this->actingAs($admin)
+            ->get(route('admin.laporans'))
+            ->assertOk()
+            ->assertSee(route('laporan.edit', $activeReport))
+            ->assertSee('Arsipkan')
+            ->assertDontSee($archivedReport->nama_barang);
+
+        $this->get(route('admin.laporans', ['archived' => true]))
+            ->assertOk()
+            ->assertSee($archivedReport->nama_barang)
+            ->assertSee(route('admin.laporans.restore', $archivedReport->id));
+    }
+
+    public function test_authenticated_user_can_request_a_short_lived_direct_upload_url(): void
+    {
+        $user = User::factory()->create();
+        $uploadService = $this->mock(ReportImageUploadService::class);
+        $uploadService->shouldReceive('supportsSignedUploads')->once()->andReturn(true);
+        $uploadService->shouldReceive('createSignedUpload')
+            ->once()
+            ->withArgs(fn (User $requestedUser, string $mimeType, int $size): bool =>
+                $requestedUser->is($user) && $mimeType === 'image/jpeg' && $size === 1024)
+            ->andReturn([
+                'id' => '8a22d385-fac0-48a8-9e90-e154880c4c26',
+                'url' => 'https://project.storage.supabase.co/upload/signed',
+                'headers' => ['Content-Type' => 'image/jpeg'],
+                'expires_at' => now()->addMinutes(10)->toIso8601String(),
+            ]);
+
+        $this->actingAs($user)
+            ->postJson(route('laporan.upload-urls.store'), ['content_type' => 'image/jpeg', 'size' => 1024])
+            ->assertCreated()
+            ->assertJsonPath('id', '8a22d385-fac0-48a8-9e90-e154880c4c26')
+            ->assertHeader('Cache-Control', 'no-store, private');
+    }
+
+    public function test_direct_upload_url_rejects_images_larger_than_five_megabytes(): void
+    {
+        $user = User::factory()->create();
+        $uploadService = $this->mock(ReportImageUploadService::class);
+        $uploadService->shouldReceive('supportsSignedUploads')->once()->andReturn(true);
+        $uploadService->shouldNotReceive('createSignedUpload');
+
+        $this->actingAs($user)
+            ->postJson(route('laporan.upload-urls.store'), [
+                'content_type' => 'image/jpeg',
+                'size' => ReportImageUploadService::MAX_FILE_BYTES + 1,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('size');
     }
 
     #[DataProvider('matchingReportOrientations')]

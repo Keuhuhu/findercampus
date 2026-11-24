@@ -22,7 +22,7 @@ class DashboardController extends Controller
         $laporanSaya = Laporan::with(['fotos', 'kategori', 'lokasi'])
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
-            ->take(5)
+            ->take(6)
             ->get();
 
         $laporanTerbaru = Laporan::with(['fotos', 'kategori', 'lokasi'])

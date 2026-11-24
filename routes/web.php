@@ -9,6 +9,7 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\KlaimController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\LaporanUploadController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PencarianController;
 use App\Http\Controllers\ProfilController;
@@ -38,6 +39,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/buat', [LaporanController::class, 'create'])->name('laporan.create');
     Route::post('/laporan', [LaporanController::class, 'store'])->name('laporan.store');
+    Route::post('/laporan/upload-urls', [LaporanUploadController::class, 'store'])->name('laporan.upload-urls.store');
+    Route::delete('/laporan/upload-urls/{upload}', [LaporanUploadController::class, 'destroy'])->name('laporan.upload-urls.destroy');
     Route::get('/laporan/{id}', [LaporanController::class, 'show'])->name('laporan.show');
     Route::get('/laporan/{id}/edit', [LaporanController::class, 'edit'])->name('laporan.edit');
     Route::put('/laporan/{id}', [LaporanController::class, 'update'])->name('laporan.update');
@@ -61,6 +64,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     Route::get('/users', [AdminDashboardController::class, 'users'])->name('admin.users');
     Route::get('/laporans', [AdminDashboardController::class, 'laporans'])->name('admin.laporans');
+    Route::post('/laporans/{id}/restore', [AdminDashboardController::class, 'restoreLaporan'])->name('admin.laporans.restore');
     Route::get('/verifikasi/{klaim_id}', [VerifikasiController::class, 'show'])->name('admin.verifikasi.show');
     Route::post('/verifikasi/{klaim_id}/approve', [VerifikasiController::class, 'approve'])->name('admin.verifikasi.approve');
     Route::post('/verifikasi/{klaim_id}/reject', [VerifikasiController::class, 'reject'])->name('admin.verifikasi.reject');

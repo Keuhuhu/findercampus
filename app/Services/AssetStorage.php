@@ -73,6 +73,48 @@ class AssetStorage
         return $path;
     }
 
+    public function supportsSignedUploads(): bool
+    {
+        return $this->usesSupabase();
+    }
+
+    public function createPrivateUploadUrl(string $path, string $mimeType): string
+    {
+        if (! $this->usesSupabase()) {
+            throw new RuntimeException('Unggahan langsung hanya tersedia dengan Supabase Storage.');
+        }
+
+        $client = $this->s3Client();
+        $command = $client->getCommand('PutObject', [
+            'Bucket' => $this->bucketName(true),
+            'Key' => $path,
+            'ContentType' => $mimeType,
+        ]);
+
+        return (string) $client->createPresignedRequest($command, '+10 minutes')->getUri();
+    }
+
+    /** @return array{contents: string, content_type: string} */
+    public function readPrivate(string $path): array
+    {
+        if (! $this->usesSupabase()) {
+            $disk = Storage::disk(config('filesystems.private_upload_disk'));
+            $contents = $disk->get($path);
+
+            return [
+                'contents' => $contents,
+                'content_type' => $disk->mimeType($path) ?: 'application/octet-stream',
+            ];
+        }
+
+        $object = $this->getSupabaseObject(true, $path);
+
+        return [
+            'contents' => (string) $object['Body'],
+            'content_type' => $object['ContentType'] ?? 'application/octet-stream',
+        ];
+    }
+
     public function putPrivate(string $path, string $contents, string $mimeType): bool
     {
         if (! $this->usesSupabase()) {

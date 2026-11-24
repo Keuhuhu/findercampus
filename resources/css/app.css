@@ -199,3 +199,162 @@ select:focus {
     0%   { background-position: -200% 0; }
     100% { background-position:  200% 0; }
 }
+
+/* Claim verification decisions */
+.claim-decision-grid {
+    align-items: stretch;
+}
+
+.claim-decision-card {
+    --decision-accent: #059669;
+    --decision-accent-dark: #047857;
+    --decision-wash: #ecfdf5;
+    --decision-border: #a7f3d0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    padding: 1.35rem;
+    border: 1px solid var(--decision-border);
+    border-radius: 1.15rem;
+    background: linear-gradient(145deg, #fff 0%, var(--decision-wash) 100%);
+    box-shadow: 0 8px 24px -18px rgba(15, 23, 42, 0.35);
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.claim-decision-card::before {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 4px;
+    background: linear-gradient(90deg, var(--decision-accent), color-mix(in srgb, var(--decision-accent) 35%, white));
+    content: "";
+}
+
+.claim-decision-card:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--decision-accent) 45%, white);
+    box-shadow: 0 18px 34px -22px color-mix(in srgb, var(--decision-accent) 48%, transparent);
+}
+
+.claim-decision-card--reject {
+    --decision-accent: #e11d48;
+    --decision-accent-dark: #be123c;
+    --decision-wash: #fff1f2;
+    --decision-border: #fecdd3;
+}
+
+.claim-decision-heading {
+    margin-bottom: 1.1rem;
+}
+
+.claim-decision-kicker {
+    display: inline-block;
+    margin-bottom: 0.45rem;
+    color: var(--decision-accent-dark);
+    font-size: 0.67rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+.claim-decision-title {
+    margin: 0;
+    color: #172554;
+    font-size: 1.1rem;
+    font-weight: 750;
+    line-height: 1.35;
+}
+
+.claim-decision-description {
+    margin: 0.35rem 0 0;
+    color: #64748b;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.claim-decision-label {
+    margin-bottom: 0.45rem;
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.claim-decision-textarea {
+    width: 100%;
+    min-height: 5.4rem;
+    resize: vertical;
+    border: 1px solid #dbe3ed;
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.75rem 0.85rem;
+    color: #0f172a;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.claim-decision-textarea::placeholder {
+    color: #94a3b8;
+}
+
+.claim-decision-textarea:focus {
+    border-color: var(--decision-accent);
+    outline: none;
+    background: #fff;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--decision-accent) 14%, transparent);
+}
+
+.claim-decision-button {
+    width: 100%;
+    min-height: 2.85rem;
+    margin-top: 1rem;
+    border: 0;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, var(--decision-accent), var(--decision-accent-dark));
+    padding: 0.7rem 1rem;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 750;
+    line-height: 1.35;
+    box-shadow: 0 6px 14px -8px var(--decision-accent);
+    cursor: pointer;
+    transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+}
+
+.claim-decision-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 18px -9px var(--decision-accent);
+}
+
+.claim-decision-button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.claim-decision-button:disabled {
+    cursor: wait;
+    opacity: 0.72;
+}
+
+.claim-decision-grid--animated .claim-decision-card:not(.is-visible) {
+    opacity: 0;
+    transform: translateY(16px);
+}
+
+.claim-decision-card.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: var(--claim-card-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .claim-decision-card,
+    .claim-decision-textarea,
+    .claim-decision-button {
+        transition-duration: 0.01ms;
+    }
+
+    .claim-decision-card:hover,
+    .claim-decision-button:hover:not(:disabled) {
+        transform: none;
+    }
+}

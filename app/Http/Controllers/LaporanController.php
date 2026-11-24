@@ -9,12 +9,15 @@ use App\Models\Laporan;
 use App\Models\LokasiKampus;
 use App\Services\AssetStorage;
 use App\Services\QrCodeService;
+use App\Services\ReportImageUploadService;
 use App\Services\SmartMatchingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Throwable;
 
@@ -43,17 +46,30 @@ class LaporanController extends Controller
         return view('laporan.index', compact('laporans', 'kategoris', 'lokasis'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $kategoris = KategoriBarang::all();
         $lokasis = LokasiKampus::all();
+        $tipe = in_array($request->query('tipe'), ['hilang', 'ditemukan'], true)
+            ? $request->query('tipe')
+            : 'hilang';
 
-        return view('laporan.create', compact('kategoris', 'lokasis'));
+        return view('laporan.create', compact('kategoris', 'lokasis', 'tipe'));
     }
 
-    public function store(Request $request, AssetStorage $assetStorage, QrCodeService $qrCodeService, SmartMatchingService $smartMatchingService): RedirectResponse
+    public function store(
+        Request $request,
+        AssetStorage $assetStorage,
+        QrCodeService $qrCodeService,
+        SmartMatchingService $smartMatchingService,
+        ReportImageUploadService $imageUploads,
+    ): RedirectResponse
     {
-        $validated = $request->validate([
+        $photoRules = $imageUploads->supportsSignedUploads()
+            ? ['foto' => ['prohibited'], 'photo_upload_ids' => ['nullable', 'array', 'max:5'], 'photo_upload_ids.*' => ['required', 'uuid', 'distinct']]
+            : ['foto' => ['nullable', 'array', 'max:5'], 'foto.*' => ['image', 'mimes:jpeg,png,jpg,webp', 'extensions:jpg,jpeg,png,webp', 'max:5120'], 'photo_upload_ids' => ['prohibited']];
+
+        $validated = $request->validate(array_merge([
             'tipe' => ['required', 'in:hilang,ditemukan'],
             'nama_barang' => ['required', 'string', 'max:255'],
             'kategori_id' => ['required', 'exists:kategori_barangs,id'],
@@ -64,14 +80,19 @@ class LaporanController extends Controller
             'warna' => ['required', 'string', 'max:50'],
             'ciri_khusus' => ['nullable', 'string'],
             'deskripsi' => ['nullable', 'string'],
-            'foto' => ['nullable', 'array', 'max:5'],
-            'foto.*' => ['image', 'mimes:jpeg,png,jpg,webp', 'extensions:jpg,jpeg,png,webp', 'max:5120'],
-        ]);
+        ], $photoRules));
+
+        $uploadIds = $validated['photo_upload_ids'] ?? [];
+        $localPhotos = $request->file('foto', []);
+        if (count($uploadIds) + count($localPhotos) > ReportImageUploadService::MAX_FILES) {
+            throw ValidationException::withMessages(['foto' => 'Maksimal 5 foto yang diizinkan.']);
+        }
 
         $storedPaths = [];
+        $consumedUploadIds = [];
 
         try {
-            $laporan = DB::transaction(function () use ($request, $validated, $assetStorage, $qrCodeService, $smartMatchingService, &$storedPaths): Laporan {
+            $laporan = DB::transaction(function () use ($request, $validated, $uploadIds, $localPhotos, $assetStorage, $qrCodeService, $smartMatchingService, $imageUploads, &$storedPaths, &$consumedUploadIds): Laporan {
                 $laporan = Laporan::create([
                     'user_id' => Auth::id(),
                     'kode_laporan' => 'FC-'.strtoupper(Str::random(8)),
@@ -88,17 +109,20 @@ class LaporanController extends Controller
                     'status' => 'aktif',
                 ]);
 
-                if ($request->hasFile('foto')) {
-                    foreach ($request->file('foto') as $index => $foto) {
-                        $path = $assetStorage->storePublic($foto, 'images/barangs');
-                        $storedPaths[] = $path;
+                if ($uploadIds !== []) {
+                    $result = $imageUploads->attachToReport($laporan, $request->user(), $uploadIds);
+                    $storedPaths = array_merge($storedPaths, $result['public_paths']);
+                    $consumedUploadIds = array_merge($consumedUploadIds, $result['upload_ids']);
+                }
 
-                        FotoBarang::create([
-                            'laporan_id' => $laporan->id,
-                            'file_path' => $path,
-                            'is_primary' => $index === 0,
-                        ]);
-                    }
+                foreach ($localPhotos as $foto) {
+                    $path = $assetStorage->storePublic($foto, 'images/barangs');
+                    $storedPaths[] = $path;
+                    FotoBarang::create([
+                        'laporan_id' => $laporan->id,
+                        'file_path' => $path,
+                        'is_primary' => ! $laporan->fotos()->where('is_primary', true)->exists(),
+                    ]);
                 }
 
                 if ($laporan->tipe === 'ditemukan') {
@@ -130,12 +154,21 @@ class LaporanController extends Controller
             throw $exception;
         }
 
+        try {
+            $imageUploads->deleteConsumedUploads($request->user(), $consumedUploadIds);
+        } catch (Throwable $cleanupException) {
+            report($cleanupException);
+        }
+
         return redirect()->route('dashboard')->with('success', 'Laporan berhasil dibuat! Silakan pantau pencocokan di halaman Pencarian.');
     }
 
     public function show(int $id): View
     {
-        $laporan = Laporan::with(['fotos', 'user', 'kategori', 'lokasi', 'activityLogs.user'])->findOrFail($id);
+        $query = Auth::user()->isAdmin() ? Laporan::withTrashed() : Laporan::query();
+        $laporan = $query->with(['fotos', 'user', 'kategori', 'lokasi', 'activityLogs.user'])->findOrFail($id);
+
+        abort_if($laporan->trashed() && ! Auth::user()->isAdmin(), 404);
 
         return view('laporan.show', compact('laporan'));
     }
@@ -151,12 +184,16 @@ class LaporanController extends Controller
         return view('laporan.edit', compact('laporan', 'kategoris', 'lokasis'));
     }
 
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(Request $request, int $id, AssetStorage $assetStorage, ReportImageUploadService $imageUploads): RedirectResponse
     {
-        $laporan = Laporan::findOrFail($id);
+        $laporan = Laporan::with('fotos')->findOrFail($id);
         $this->authorizeReportManagement($laporan);
 
-        $validated = $request->validate([
+        $photoRules = $imageUploads->supportsSignedUploads()
+            ? ['foto' => ['prohibited'], 'photo_upload_ids' => ['nullable', 'array', 'max:5'], 'photo_upload_ids.*' => ['required', 'uuid', 'distinct']]
+            : ['foto' => ['nullable', 'array', 'max:5'], 'foto.*' => ['image', 'mimes:jpeg,png,jpg,webp', 'extensions:jpg,jpeg,png,webp', 'max:5120'], 'photo_upload_ids' => ['prohibited']];
+
+        $validated = $request->validate(array_merge([
             'nama_barang' => ['required', 'string', 'max:255'],
             'kategori_id' => ['required', 'exists:kategori_barangs,id'],
             'lokasi_id' => ['required', 'exists:lokasi_kampuses,id'],
@@ -166,36 +203,91 @@ class LaporanController extends Controller
             'warna' => ['required', 'string', 'max:50'],
             'ciri_khusus' => ['nullable', 'string'],
             'deskripsi' => ['nullable', 'string'],
+            'remove_foto_ids' => ['nullable', 'array', 'max:5'],
+            'remove_foto_ids.*' => ['required', 'integer', 'distinct', Rule::exists('foto_barangs', 'id')->where('laporan_id', $laporan->id)],
             'status' => ['prohibited'],
-        ]);
+        ], $photoRules));
 
-        $laporan->update($validated);
+        $uploadIds = $validated['photo_upload_ids'] ?? [];
+        $localPhotos = $request->file('foto', []);
+        $removedIds = array_map('intval', $validated['remove_foto_ids'] ?? []);
+        $remainingPhotoCount = $laporan->fotos->count() - count($removedIds);
+
+        if ($remainingPhotoCount + count($uploadIds) + count($localPhotos) > ReportImageUploadService::MAX_FILES) {
+            throw ValidationException::withMessages(['foto' => 'Maksimal 5 foto dapat disimpan pada setiap laporan.']);
+        }
+
+        $newPublicPaths = [];
+        $removedPublicPaths = [];
+        $consumedUploadIds = [];
+
+        try {
+            DB::transaction(function () use ($laporan, $validated, $removedIds, $uploadIds, $localPhotos, $request, $assetStorage, $imageUploads, &$newPublicPaths, &$removedPublicPaths, &$consumedUploadIds): void {
+                if ($removedIds !== []) {
+                    $removedPhotos = $laporan->fotos()->whereIn('id', $removedIds)->get();
+                    $removedPublicPaths = $removedPhotos->pluck('file_path')->all();
+                    $laporan->fotos()->whereIn('id', $removedIds)->delete();
+                }
+
+                $laporan->update(collect($validated)->except(['photo_upload_ids', 'remove_foto_ids', 'foto'])->all());
+
+                if ($uploadIds !== []) {
+                    $result = $imageUploads->attachToReport($laporan, $request->user(), $uploadIds);
+                    $newPublicPaths = array_merge($newPublicPaths, $result['public_paths']);
+                    $consumedUploadIds = array_merge($consumedUploadIds, $result['upload_ids']);
+                }
+
+                foreach ($localPhotos as $foto) {
+                    $path = $assetStorage->storePublic($foto, 'images/barangs');
+                    $newPublicPaths[] = $path;
+                    FotoBarang::create([
+                        'laporan_id' => $laporan->id,
+                        'file_path' => $path,
+                        'is_primary' => ! $laporan->fotos()->where('is_primary', true)->exists(),
+                    ]);
+                }
+
+                if ($laporan->fotos()->exists() && ! $laporan->fotos()->where('is_primary', true)->exists()) {
+                    $laporan->fotos()->oldest('id')->first()?->update(['is_primary' => true]);
+                }
+            });
+        } catch (Throwable $exception) {
+            try {
+                $assetStorage->deletePublic($newPublicPaths);
+            } catch (Throwable $cleanupException) {
+                report($cleanupException);
+            }
+
+            throw $exception;
+        }
+
+        try {
+            $assetStorage->deletePublic($removedPublicPaths);
+            $imageUploads->deleteConsumedUploads($request->user(), $consumedUploadIds);
+        } catch (Throwable $cleanupException) {
+            report($cleanupException);
+        }
 
         return redirect()->route('laporan.show', $laporan)->with('success', 'Laporan berhasil diperbarui!');
     }
 
-    public function destroy(int $id, AssetStorage $assetStorage): RedirectResponse
+    public function destroy(int $id): RedirectResponse
     {
-        $laporan = Laporan::with('fotos')->findOrFail($id);
+        $laporan = Laporan::findOrFail($id);
         $this->authorizeReportManagement($laporan);
-
-        $assetStorage->deletePublic($laporan->fotos->pluck('file_path')->all());
-
-        if ($laporan->qr_code_path) {
-            $assetStorage->deletePublic($laporan->qr_code_path);
-        }
-
         $laporan->delete();
 
-        return redirect()->route('dashboard')->with('success', 'Laporan berhasil dihapus.');
+        return redirect()->route(Auth::user()->isAdmin() ? 'admin.laporans' : 'dashboard')
+            ->with('success', 'Laporan berhasil diarsipkan.');
     }
 
     public function downloadQr(int $id, AssetStorage $assetStorage)
     {
-        $laporan = Laporan::findOrFail($id);
+        $query = Auth::user()->isAdmin() ? Laporan::withTrashed() : Laporan::query();
+        $laporan = $query->findOrFail($id);
         $this->authorizeReportManagement($laporan);
 
-        if (! $laporan->qr_code_path) {
+        if ($laporan->tipe !== 'ditemukan' || ! $laporan->qr_code_path) {
             abort(404, 'QR Code tidak ditemukan.');
         }
 

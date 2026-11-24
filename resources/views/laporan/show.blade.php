@@ -14,6 +14,12 @@
         </div>
     @endif
 
+    @if($laporan->trashed())
+        <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
+            Laporan ini diarsipkan dan tidak ditampilkan pada pencarian publik.
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- Left Column: Details -->
@@ -62,9 +68,13 @@
                             <h1 class="text-2xl font-bold text-gray-900">{{ $laporan->nama_barang }}</h1>
                         </div>
                         
-                        @if(Auth::id() !== $laporan->user_id && $laporan->status === 'aktif')
-                            <a href="/klaim/buat/{{ $laporan->id }}" class="inline-flex items-center justify-center px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-black transition shadow-md">
-                                {{ $laporan->tipe === 'ditemukan' ? 'Ini Milik Saya 🖐️' : 'Saya Menemukan Ini 💡' }}
+                        @if(! $laporan->trashed() && $laporan->tipe === 'ditemukan' && Auth::id() !== $laporan->user_id && $laporan->status === 'aktif')
+                            <a href="{{ route('klaim.create', $laporan) }}" class="inline-flex items-center justify-center px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-black transition shadow-md">
+                                Ajukan klaim kepemilikan
+                            </a>
+                        @elseif(! $laporan->trashed() && $laporan->tipe === 'hilang' && $laporan->status === 'aktif')
+                            <a href="{{ route('laporan.create', ['tipe' => 'ditemukan']) }}" class="inline-flex items-center justify-center px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-black transition shadow-md">
+                                Saya menemukan barang seperti ini
                             </a>
                         @endif
                     </div>
@@ -114,17 +124,17 @@
             </div>
 
             <!-- Action Buttons for Owner -->
-            @if(Auth::id() === $laporan->user_id && $laporan->status === 'aktif')
+            @if(! $laporan->trashed() && (Auth::user()->isAdmin() || (Auth::id() === $laporan->user_id && $laporan->status === 'aktif')))
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <a href="/laporan/{{ $laporan->id }}/edit" class="flex-1 text-center px-4 py-3 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition shadow-sm">
-                        ✏️ Edit Laporan
+                    <a href="{{ route('laporan.edit', $laporan) }}" class="flex-1 text-center px-4 py-3 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition shadow-sm">
+                        Edit Laporan
                     </a>
                     
-                    <form action="/laporan/{{ $laporan->id }}" method="POST" class="flex-1" onsubmit="return confirm('Yakin ingin membatalkan laporan ini?')">
+                    <form action="{{ route('laporan.destroy', $laporan) }}" method="POST" class="flex-1" onsubmit="return confirm('Arsipkan laporan ini? Laporan dapat dipulihkan oleh admin.')">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="w-full px-4 py-3 bg-white border border-red-200 text-red-600 text-sm font-bold rounded-xl hover:bg-red-50 transition shadow-sm">
-                            🗑️ Batalkan Laporan
+                            Arsipkan laporan
                         </button>
                     </form>
                 </div>
@@ -144,10 +154,12 @@
                     <img src="@mediaUrl($laporan->qr_code_path)" alt="QR Code" class="w-40 h-40">
                 </div>
                 
-                <a href="/laporan/{{ $laporan->id }}/qr" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-light transition">
+                @if(Auth::user()->isAdmin() || Auth::id() === $laporan->user_id)
+                <a href="{{ route('laporan.qr', $laporan) }}" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-light transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Download QR Code
                 </a>
+                @endif
             </div>
             @endif
 

@@ -58,29 +58,39 @@
 
             <!-- Action Buttons (only if pending) -->
             @if($klaim->status === 'pending')
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" x-data="{ showReject: false }">
+            <div class="claim-decision-grid grid grid-cols-1 md:grid-cols-2 gap-5" data-claim-actions>
                 <!-- Approve -->
-                <form action="/admin/verifikasi/{{ $klaim->id }}/approve" method="POST" class="bg-emerald-50 rounded-xl border border-emerald-200 p-5">
+                <form action="/admin/verifikasi/{{ $klaim->id }}/approve" method="POST"
+                    class="claim-decision-card claim-decision-card--approve" data-claim-card data-claim-form
+                    data-confirm-message="Yakin ingin menyetujui klaim ini? Barang akan ditandai telah dikembalikan.">
                     @csrf
-                    <h3 class="text-sm font-bold text-emerald-900 mb-3 flex items-center gap-2">
-                        ✅ Setujui Klaim
-                    </h3>
-                    <textarea name="catatan" rows="2" class="w-full text-sm border-emerald-200 rounded-lg bg-white mb-3" placeholder="Catatan opsional..."></textarea>
-                    <button type="submit" onclick="return confirm('Yakin ingin menyetujui klaim ini? Barang akan ditandai telah dikembalikan.')" class="w-full px-4 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-lg hover:bg-emerald-700 transition shadow-sm">
-                        Setujui & Kembalikan Barang
+                    <div class="claim-decision-heading">
+                        <span class="claim-decision-kicker">KEPUTUSAN KLAIM</span>
+                        <h3 class="claim-decision-title">Setujui klaim</h3>
+                        <p class="claim-decision-description">Konfirmasi bahwa barang telah kembali kepada pemiliknya.</p>
+                    </div>
+                    <label class="claim-decision-label" for="approval-note">Catatan untuk pengklaim</label>
+                    <textarea id="approval-note" name="catatan" rows="3" class="claim-decision-textarea" placeholder="Catatan tambahan bila diperlukan"></textarea>
+                    <button type="submit" class="claim-decision-button" data-claim-submit>
+                        Setujui dan kembalikan barang
                     </button>
                 </form>
 
                 <!-- Reject -->
-                <form action="/admin/verifikasi/{{ $klaim->id }}/reject" method="POST" class="bg-red-50 rounded-xl border border-red-200 p-5">
+                <form action="/admin/verifikasi/{{ $klaim->id }}/reject" method="POST"
+                    class="claim-decision-card claim-decision-card--reject" data-claim-card data-claim-form
+                    data-confirm-message="Yakin ingin menolak klaim ini?">
                     @csrf
-                    <h3 class="text-sm font-bold text-red-900 mb-3 flex items-center gap-2">
-                        ❌ Tolak Klaim
-                    </h3>
-                    <textarea name="catatan" rows="2" class="w-full text-sm border-red-200 rounded-lg bg-white mb-3" placeholder="Alasan penolakan (wajib diisi)..." required></textarea>
+                    <div class="claim-decision-heading">
+                        <span class="claim-decision-kicker">KEPUTUSAN KLAIM</span>
+                        <h3 class="claim-decision-title">Tolak klaim</h3>
+                        <p class="claim-decision-description">Jelaskan alasan agar pengklaim memahami keputusan ini.</p>
+                    </div>
+                    <label class="claim-decision-label" for="rejection-note">Alasan penolakan</label>
+                    <textarea id="rejection-note" name="catatan" rows="3" class="claim-decision-textarea" placeholder="Tuliskan alasan penolakan" required></textarea>
                     @error('catatan')<p class="text-xs text-red-500 mb-2">{{ $message }}</p>@enderror
-                    <button type="submit" onclick="return confirm('Yakin ingin menolak klaim ini?')" class="w-full px-4 py-2.5 bg-red-600 text-white font-bold text-sm rounded-lg hover:bg-red-700 transition shadow-sm">
-                        Tolak Klaim
+                    <button type="submit" class="claim-decision-button" data-claim-submit>
+                        Tolak klaim
                     </button>
                 </form>
             </div>

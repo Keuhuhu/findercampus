@@ -10,7 +10,7 @@ class Klaim extends Model
 
     public function laporan()
     {
-        return $this->belongsTo(Laporan::class);
+        return $this->belongsTo(Laporan::class)->withTrashed();
     }
 
     public function user()

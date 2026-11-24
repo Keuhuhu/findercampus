@@ -173,7 +173,13 @@
                         <label class="block text-sm font-semibold text-gray-700 mb-1.5">Unggah Foto (Maksimal 5)</label>
                         
                         <!-- Custom File Upload UI -->
-                        <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition cursor-pointer" onclick="document.getElementById('foto_input').click()">
+                        <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition cursor-pointer"
+                            data-report-photo-uploader
+                            data-direct-upload="{{ config('filesystems.upload_driver') === 'supabase_s3' ? 'true' : 'false' }}"
+                            data-max-files="5"
+                            data-sign-url="{{ route('laporan.upload-urls.store') }}"
+                            data-delete-url="{{ route('laporan.upload-urls.destroy', ['upload' => 'UPLOAD_ID']) }}"
+                            onclick="document.getElementById('foto_input').click()">
                             <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
                                 <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
@@ -186,7 +192,16 @@
                             <p class="text-xs text-gray-500 mt-2">PNG, JPG, WEBP hingga 5MB</p>
                             
                             <!-- Actual input hidden -->
-                            <input id="foto_input" type="file" name="foto[]" multiple accept="image/*" class="sr-only" @change="handleFiles">
+                            <input id="foto_input" type="file" @if(config('filesystems.upload_driver') !== 'supabase_s3') name="foto[]" @endif multiple accept="image/jpeg,image/png,image/webp" class="sr-only" data-report-photo-input @change="handleFiles">
+                            @if(config('filesystems.upload_driver') === 'supabase_s3')
+                                <div data-upload-id-list>
+                                    @foreach(old('photo_upload_ids', []) as $uploadId)
+                                        <input type="hidden" name="photo_upload_ids[]" value="{{ $uploadId }}" data-upload-id>
+                                    @endforeach
+                                </div>
+                                <div data-photo-upload-items class="mt-3 space-y-2 text-left"></div>
+                                <p data-photo-upload-status class="mt-2 text-xs text-gray-600" role="status" aria-live="polite"></p>
+                            @endif
                         </div>
 
                         <!-- Image Preview Grid -->
@@ -205,6 +220,7 @@
 
                         @error('foto')<p class="mt-2 text-xs text-red-500">{{ $message }}</p>@enderror
                         @error('foto.*')<p class="mt-2 text-xs text-red-500">{{ $message }}</p>@enderror
+                        @error('photo_upload_ids')<p class="mt-2 text-xs text-red-500">{{ $message }}</p>@enderror
                     </div>
                 </div>
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Laporan;
 use App\Models\Klaim;
 use App\Models\User;
+use Illuminate\Http\Request;
 
 class AdminDashboardController extends Controller
 {
@@ -40,12 +41,32 @@ class AdminDashboardController extends Controller
         return view('admin.users', compact('users'));
     }
 
-    public function laporans()
+    public function laporans(Request $request)
     {
-        $laporans = Laporan::with(['fotos', 'kategori', 'lokasi', 'user'])
+        $query = Laporan::withTrashed()->with(['fotos', 'kategori', 'lokasi', 'user']);
+
+        if ($request->boolean('archived')) {
+            $query->onlyTrashed();
+        } else {
+            $query->whereNull('deleted_at');
+        }
+
+        $laporans = $query
             ->orderBy('created_at', 'desc')
             ->paginate(20);
-        return view('admin.laporans', compact('laporans'));
+        $archived = $request->boolean('archived');
+
+        return view('admin.laporans', compact('laporans', 'archived'));
+    }
+
+    public function restoreLaporan(int $id)
+    {
+        $laporan = Laporan::withTrashed()->findOrFail($id);
+        abort_unless($laporan->trashed(), 404);
+        $laporan->restore();
+
+        return redirect()->route('admin.laporans', ['archived' => true])
+            ->with('success', 'Laporan berhasil dipulihkan.');
     }
 }
 
