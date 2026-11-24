@@ -44,7 +44,7 @@
         </div>
 
         <div class="mt-auto pt-3 border-t border-gray-100 flex gap-2">
-            <span class="btn-ripple w-full text-center py-2 px-4 {{ $laporan->tipe === 'ditemukan' ? 'bg-indigo-50 text-indigo-800 group-hover:bg-indigo-100 border-indigo-200' : 'bg-emerald-50 text-emerald-800 group-hover:bg-emerald-100 border-emerald-200' }} border font-semibold text-sm rounded-lg transition-all duration-200">
+            <span class="btn-ripple w-full text-center py-2 px-4 {{ $laporan->tipe === 'ditemukan' ? 'bg-indigo-50 text-indigo-800 group-hover:bg-indigo-100 border-indigo-200' : 'bg-red-50 text-red-800 group-hover:bg-red-100 border-red-200' }} border font-semibold text-sm rounded-lg transition-all duration-200">
                 Lihat Detail
             </span>
         </div>

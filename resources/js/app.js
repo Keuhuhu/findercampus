@@ -471,26 +471,124 @@ document.querySelectorAll('[data-report-gallery]').forEach((gallery) => {
     const mainImage = gallery.querySelector('[data-gallery-main]');
     const thumbnails = [...gallery.querySelectorAll('[data-gallery-thumbnail]')];
     const counter = gallery.querySelector('[data-gallery-counter]');
+    const zoomTrigger = gallery.querySelector('[data-gallery-open]');
 
-    if (!mainImage || thumbnails.length < 2) return;
+    if (!mainImage || !zoomTrigger) return;
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let activeIndex = Math.max(0, thumbnails.findIndex((button) => button.getAttribute('aria-pressed') === 'true'));
     let selectionRequest = 0;
+    let isLightboxOpen = false;
+    let previousFocusedElement = null;
+    let previousDocumentOverflow = '';
+    const backgroundInertStates = new Map();
+
+    const lightbox = document.createElement('div');
+    lightbox.className = 'report-lightbox';
+    lightbox.hidden = true;
+    lightbox.setAttribute('role', 'dialog');
+    lightbox.setAttribute('aria-modal', 'true');
+    lightbox.setAttribute('aria-label', 'Foto ukuran penuh');
+    lightbox.innerHTML = `
+        <div class="report-lightbox__backdrop" data-lightbox-backdrop></div>
+        <div class="report-lightbox__content">
+            <button type="button" class="report-lightbox__control report-lightbox__close" data-lightbox-close aria-label="Tutup foto">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+            ${thumbnails.length > 1 ? `
+                <button type="button" class="report-lightbox__control report-lightbox__previous" data-lightbox-previous aria-label="Foto sebelumnya">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button type="button" class="report-lightbox__control report-lightbox__next" data-lightbox-next aria-label="Foto berikutnya">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            ` : ''}
+            <img class="report-lightbox__image" data-lightbox-image alt="">
+            <div class="report-lightbox__counter" data-lightbox-counter aria-live="polite"></div>
+        </div>
+    `;
+    document.body.append(lightbox);
+
+    const lightboxImage = lightbox.querySelector('[data-lightbox-image]');
+    const lightboxCounter = lightbox.querySelector('[data-lightbox-counter]');
+    const lightboxClose = lightbox.querySelector('[data-lightbox-close]');
+    const lightboxBackdrop = lightbox.querySelector('[data-lightbox-backdrop]');
+    const syncLightboxPhoto = () => {
+        lightboxImage.src = mainImage.currentSrc || mainImage.src;
+        lightboxImage.alt = mainImage.alt;
+        lightbox.setAttribute('aria-label', `Foto ukuran penuh: ${mainImage.alt}`);
+        lightboxCounter.textContent = counter?.textContent || '';
+    };
+
+    const setBackgroundInert = (inert) => {
+        [...document.body.children].forEach((element) => {
+            if (element === lightbox) return;
+
+            if (inert) {
+                backgroundInertStates.set(element, element.inert);
+                element.inert = true;
+            } else if (backgroundInertStates.has(element)) {
+                element.inert = backgroundInertStates.get(element);
+            }
+        });
+
+        if (!inert) backgroundInertStates.clear();
+    };
+
+    const openLightbox = () => {
+        if (isLightboxOpen) return;
+
+        isLightboxOpen = true;
+        previousFocusedElement = document.activeElement;
+        previousDocumentOverflow = document.documentElement.style.overflow;
+        syncLightboxPhoto();
+        lightbox.hidden = false;
+        document.documentElement.style.overflow = 'hidden';
+        document.body.classList.add('lightbox-open');
+        setBackgroundInert(true);
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => lightbox.classList.add('report-lightbox--open'));
+        });
+        lightboxClose.focus();
+    };
+
+    const closeLightbox = () => {
+        if (!isLightboxOpen) return;
+
+        isLightboxOpen = false;
+        lightbox.classList.remove('report-lightbox--open');
+        document.body.classList.remove('lightbox-open');
+        document.documentElement.style.overflow = previousDocumentOverflow;
+        setBackgroundInert(false);
+
+        if (previousFocusedElement instanceof HTMLElement && previousFocusedElement.isConnected) {
+            previousFocusedElement.focus();
+        }
+
+        window.setTimeout(() => {
+            if (!isLightboxOpen) lightbox.hidden = true;
+        }, prefersReducedMotion ? 0 : 280);
+    };
 
     const setActivePhoto = (index) => {
         activeIndex = index;
         thumbnails.forEach((button, buttonIndex) => {
             button.setAttribute('aria-pressed', buttonIndex === index ? 'true' : 'false');
         });
-        mainImage.alt = thumbnails[index].dataset.imageAlt || mainImage.alt;
+        if (thumbnails[index]) {
+            mainImage.alt = thumbnails[index].dataset.imageAlt || mainImage.alt;
+        }
 
-        if (counter) {
+        if (counter && thumbnails.length > 0) {
             counter.textContent = (index + 1) + ' dari ' + thumbnails.length + ' foto';
         }
+
+        if (isLightboxOpen) syncLightboxPhoto();
     };
 
     const showPhoto = (index) => {
+        if (index < 0 || index >= thumbnails.length) return;
+
         const request = ++selectionRequest;
 
         if (index === activeIndex) {
@@ -546,8 +644,50 @@ document.querySelectorAll('[data-report-gallery]').forEach((gallery) => {
         }
     });
 
+    zoomTrigger.addEventListener('click', openLightbox);
+    lightboxClose.addEventListener('click', closeLightbox);
+    lightboxBackdrop.addEventListener('click', closeLightbox);
+
+    lightbox.querySelector('[data-lightbox-previous]')?.addEventListener('click', () => {
+        showPhoto((activeIndex - 1 + thumbnails.length) % thumbnails.length);
+    });
+    lightbox.querySelector('[data-lightbox-next]')?.addEventListener('click', () => {
+        showPhoto((activeIndex + 1) % thumbnails.length);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (!isLightboxOpen) return;
+
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeLightbox();
+            return;
+        }
+
+        if (thumbnails.length > 1 && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+            event.preventDefault();
+            const direction = event.key === 'ArrowRight' ? 1 : -1;
+            showPhoto((activeIndex + direction + thumbnails.length) % thumbnails.length);
+            return;
+        }
+
+        if (event.key === 'Tab') {
+            const focusableControls = [...lightbox.querySelectorAll('button:not([disabled])')];
+            const firstControl = focusableControls[0];
+            const lastControl = focusableControls[focusableControls.length - 1];
+
+            if (event.shiftKey && document.activeElement === firstControl) {
+                event.preventDefault();
+                lastControl.focus();
+            } else if (!event.shiftKey && document.activeElement === lastControl) {
+                event.preventDefault();
+                firstControl.focus();
+            }
+        }
+    });
+
     gallery.addEventListener('keydown', (event) => {
-        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        if (thumbnails.length < 2 || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
 
         event.preventDefault();
         const direction = event.key === 'ArrowRight' ? 1 : -1;
@@ -567,6 +707,26 @@ document.addEventListener('alpine:initialized', () => {
 });
 
 /* ─── Ripple effect on buttons ─────────────────────────── */
+const interactiveButtonSelector = 'button:not(.claim-decision-button):not(.report-gallery__thumbnail):not(.report-lightbox__control):not(.report-gallery__zoom-trigger):not(.back-to-top), input[type="submit"], input[type="button"], a[role="button"], a[class*="px-"][class*="py-"][class*="rounded-"]';
+
+document.addEventListener('pointerover', (event) => {
+    if (event.pointerType === 'touch' || !(event.target instanceof Element)) return;
+
+    const button = event.target.closest(interactiveButtonSelector);
+    if (!button || (event.relatedTarget instanceof Node && button.contains(event.relatedTarget))) return;
+
+    button.classList.add('button-pointer-hover');
+});
+
+document.addEventListener('pointerout', (event) => {
+    if (event.pointerType === 'touch' || !(event.target instanceof Element)) return;
+
+    const button = event.target.closest(interactiveButtonSelector);
+    if (!button || (event.relatedTarget instanceof Node && button.contains(event.relatedTarget))) return;
+
+    button.classList.remove('button-pointer-hover');
+});
+
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-ripple');
     if (!btn) return;

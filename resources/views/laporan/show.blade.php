@@ -41,13 +41,21 @@
                         aria-label="Galeri foto {{ $laporan->nama_barang }}"
                     >
                         <div class="report-gallery__stage">
-                            <img
-                                src="@mediaUrl($primary->file_path)"
-                                alt="Foto {{ $primaryIndex }} dari {{ $galleryPhotos->count() }} untuk {{ $laporan->nama_barang }}"
-                                class="report-gallery__main-image"
-                                data-gallery-main
-                                fetchpriority="high"
+                            <button
+                                type="button"
+                                class="report-gallery__zoom-trigger"
+                                data-gallery-open
+                                aria-haspopup="dialog"
+                                aria-label="Buka foto ukuran penuh: {{ $laporan->nama_barang }}"
                             >
+                                <img
+                                    src="@mediaUrl($primary->file_path)"
+                                    alt="Foto {{ $primaryIndex }} dari {{ $galleryPhotos->count() }} untuk {{ $laporan->nama_barang }}"
+                                    class="report-gallery__main-image"
+                                    data-gallery-main
+                                    fetchpriority="high"
+                                >
+                            </button>
                             <div class="report-gallery__badge report-gallery__badge--status">
                                 <x-status-badge :status="$laporan->status" />
                             </div>

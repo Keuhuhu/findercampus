@@ -15,13 +15,15 @@
                 <label class="sr-only" for="report-search">Cari barang</label>
                 <input id="report-search" type="text" name="q" value="{{ request('q') }}" placeholder="Cari barang..." class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent">
             </div>
-            <div class="md:col-span-1">
+            <div class="md:col-span-1 relative">
                 <label class="sr-only" for="report-type">Jenis laporan</label>
-                <select id="report-type" name="tipe" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent">
-                    <option value="" {{ request('tipe') === null || request('tipe') === '' ? 'selected' : '' }}>Semua tipe</option>
-                    <option value="hilang" {{ request('tipe') === 'hilang' ? 'selected' : '' }}>Hilang</option>
-                    <option value="ditemukan" {{ request('tipe') === 'ditemukan' ? 'selected' : '' }}>Ditemukan</option>
-                </select>
+                <x-custom-select
+                    id="report-type"
+                    name="tipe"
+                    :options="['hilang' => 'Hilang', 'ditemukan' => 'Ditemukan']"
+                    placeholder="Semua tipe"
+                    :selected="request('tipe', '')"
+                />
             </div>
             <div class="md:col-span-1 relative">
                 @php
