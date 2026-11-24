@@ -22,6 +22,10 @@ Route::get('/', [LandingController::class, 'index'])->name('landing');
 Route::get('/qr/laporan/{id}', [LaporanController::class, 'showPublicQr'])
     ->whereNumber('id')
     ->name('laporan.qr.public');
+Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+    ->whereNumber('id')
+    ->middleware('signed:relative')
+    ->name('verification.verify');
 
 // Auth Routes (Guest)
 Route::middleware('guest')->group(function () {
@@ -35,9 +39,6 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/email/verify', [EmailVerificationController::class, 'notice'])->name('verification.notice');
-    Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
-        ->middleware('signed:relative')
-        ->name('verification.verify');
     Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:6,1')
         ->name('verification.send');

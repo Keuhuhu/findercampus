@@ -3,8 +3,10 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -20,28 +22,29 @@ class EmailVerificationTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_valid_verification_link_verifies_email_without_changing_campus_identity_status(): void
+    public function test_guest_can_verify_email_from_link_and_get_a_close_tab_confirmation(): void
     {
         $user = User::factory()->requiresEmailVerification()->create();
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addMinutes(60),
-            ['id' => $user->id, 'hash' => sha1($user->email)],
-            absolute: false,
-        );
+        Event::fake([Verified::class]);
+        $verificationUrl = (new VerifyEmail)->toMail($user)->actionUrl;
 
-        $this->actingAs($user)
-            ->get(URL::to($verificationUrl))
-            ->assertRedirect(route('dashboard'));
+        $this->get($verificationUrl)
+            ->assertOk()
+            ->assertSee('Email berhasil diverifikasi')
+            ->assertSee('boleh menutup tab ini');
 
-        $user->refresh();
+        $this->assertGuest();
+        $this->assertNotNull($user->fresh()->email_verified_at);
+        $this->assertFalse($user->fresh()->is_verified);
+        Event::assertDispatched(Verified::class, fn (Verified $event): bool => $event->user->is($user));
 
-        $this->assertNotNull($user->email_verified_at);
-        $this->assertFalse($user->is_verified);
-        $this->get(route('dashboard'))->assertOk();
+        $this->get($verificationUrl)
+            ->assertOk()
+            ->assertSee('Email berhasil diverifikasi');
+
     }
 
-    public function test_valid_verification_link_works_on_a_different_host(): void
+    public function test_valid_verification_link_works_on_a_different_host_without_login(): void
     {
         $user = User::factory()->requiresEmailVerification()->create();
         $relativeUrl = URL::temporarySignedRoute(
@@ -53,11 +56,31 @@ class EmailVerificationTest extends TestCase
         $verificationUrl = URL::to($relativeUrl);
         $verificationUrl = preg_replace('#^https?://[^/]+#', 'https://findercampus.vercel.app', $verificationUrl);
 
-        $this->actingAs($user)
-            ->get($verificationUrl)
-            ->assertRedirect(route('dashboard'));
+        $this->get($verificationUrl)
+            ->assertOk()
+            ->assertSee('Email berhasil diverifikasi');
 
+        $this->assertGuest();
         $this->assertNotNull($user->fresh()->email_verified_at);
+    }
+
+    public function test_signed_link_with_wrong_email_hash_does_not_verify_account(): void
+    {
+        $user = User::factory()->requiresEmailVerification()->create();
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $user->id, 'hash' => sha1('different@example.test')],
+            absolute: false,
+        );
+
+        $this->get(URL::to($verificationUrl))
+            ->assertForbidden()
+            ->assertViewIs('auth.email-verification-result')
+            ->assertViewHas('verified', false)
+            ->assertSee('Tautan verifikasi tidak valid atau kedaluwarsa');
+
+        $this->assertNull($user->fresh()->email_verified_at);
     }
 
     public function test_new_unverified_account_is_redirected_to_notice_but_can_edit_profile(): void
@@ -107,7 +130,7 @@ class EmailVerificationTest extends TestCase
         Notification::assertSentToTimes($user, VerifyEmail::class, 6);
     }
 
-    public function test_expired_verification_link_shows_resend_instructions(): void
+    public function test_expired_verification_link_shows_instructions_without_login(): void
     {
         $user = User::factory()->requiresEmailVerification()->create();
         $verificationUrl = URL::temporarySignedRoute(
@@ -117,14 +140,14 @@ class EmailVerificationTest extends TestCase
             absolute: false,
         );
 
-        $this->actingAs($user)
-            ->get(URL::to($verificationUrl))
+        $this->get(URL::to($verificationUrl))
             ->assertForbidden()
-            ->assertViewIs('auth.verify-email')
-            ->assertViewHas('verificationLinkExpired', true);
+            ->assertViewIs('auth.email-verification-result')
+            ->assertViewHas('verified', false)
+            ->assertSee('Tautan verifikasi tidak valid atau kedaluwarsa');
     }
 
-    public function test_invalid_verification_signature_is_rejected(): void
+    public function test_invalid_verification_signature_is_rejected_without_login(): void
     {
         $user = User::factory()->requiresEmailVerification()->create();
         $verificationUrl = URL::temporarySignedRoute(
@@ -135,11 +158,11 @@ class EmailVerificationTest extends TestCase
         );
         $tamperedUrl = URL::to($verificationUrl).'&signature=invalid';
 
-        $this->actingAs($user)
-            ->get($tamperedUrl)
+        $this->get($tamperedUrl)
             ->assertForbidden()
-            ->assertViewIs('auth.verify-email')
-            ->assertViewHas('verificationLinkExpired', true);
+            ->assertViewIs('auth.email-verification-result')
+            ->assertViewHas('verified', false)
+            ->assertSee('Tautan verifikasi tidak valid atau kedaluwarsa');
 
         $this->assertNull($user->fresh()->email_verified_at);
     }

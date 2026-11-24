@@ -22,8 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (InvalidSignatureException $exception, Request $request) {
-            if ($request->routeIs('verification.verify') && $request->user()) {
-                return response()->view('auth.verify-email', ['verificationLinkExpired' => true], 403);
+            if ($request->routeIs('verification.verify')) {
+                return response()->view('auth.email-verification-result', ['verified' => false], 403);
             }
 
             return null;

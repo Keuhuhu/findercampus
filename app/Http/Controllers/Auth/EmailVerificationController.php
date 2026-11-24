@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Contracts\View\View;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -24,13 +25,23 @@ class EmailVerificationController extends Controller
         return view('auth.verify-email');
     }
 
-    public function verify(EmailVerificationRequest $request): RedirectResponse
+    public function verify(int $id, string $hash): Response
     {
-        if (! $request->user()->hasVerifiedEmail()) {
-            $request->fulfill();
+        $user = User::query()->find($id);
+
+        if (! $user instanceof User || ! hash_equals(sha1($user->getEmailForVerification()), $hash)) {
+            return response()->view('auth.email-verification-result', ['verified' => false], Response::HTTP_FORBIDDEN);
         }
 
-        return redirect()->route('dashboard')->with('success', 'Email Anda berhasil diverifikasi.');
+        if (! $user->hasVerifiedEmail()) {
+            if (! $user->markEmailAsVerified()) {
+                return response()->view('auth.email-verification-result', ['verified' => false], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
+
+            event(new Verified($user));
+        }
+
+        return response()->view('auth.email-verification-result', ['verified' => true]);
     }
 
     public function resend(Request $request): RedirectResponse
