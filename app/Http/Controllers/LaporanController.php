@@ -70,7 +70,7 @@ class LaporanController extends Controller
     ): RedirectResponse {
         $photoRules = $imageUploads->supportsSignedUploads()
             ? ['foto' => ['prohibited'], 'photo_upload_ids' => ['nullable', 'array', 'max:5'], 'photo_upload_ids.*' => ['required', 'uuid', 'distinct']]
-            : ['foto' => ['nullable', 'array', 'max:5'], 'foto.*' => ['image', 'mimes:jpeg,png,jpg,webp', 'extensions:jpg,jpeg,png,webp', 'max:5120'], 'photo_upload_ids' => ['prohibited']];
+            : ['foto' => ['nullable', 'array', 'max:5'], 'foto.*' => ['image', 'mimes:jpeg,png,jpg,webp', 'extensions:jpg,jpeg,png,webp', 'max:'.(ReportImageUploadService::MAX_FILE_BYTES / 1024)], 'photo_upload_ids' => ['prohibited']];
 
         $validated = $request->validate(array_merge([
             'tipe' => ['required', 'in:hilang,ditemukan'],
@@ -194,7 +194,7 @@ class LaporanController extends Controller
 
         $photoRules = $imageUploads->supportsSignedUploads()
             ? ['foto' => ['prohibited'], 'photo_upload_ids' => ['nullable', 'array', 'max:5'], 'photo_upload_ids.*' => ['required', 'uuid', 'distinct']]
-            : ['foto' => ['nullable', 'array', 'max:5'], 'foto.*' => ['image', 'mimes:jpeg,png,jpg,webp', 'extensions:jpg,jpeg,png,webp', 'max:5120'], 'photo_upload_ids' => ['prohibited']];
+            : ['foto' => ['nullable', 'array', 'max:5'], 'foto.*' => ['image', 'mimes:jpeg,png,jpg,webp', 'extensions:jpg,jpeg,png,webp', 'max:'.(ReportImageUploadService::MAX_FILE_BYTES / 1024)], 'photo_upload_ids' => ['prohibited']];
 
         $validated = $request->validate(array_merge([
             'nama_barang' => ['required', 'string', 'max:255'],

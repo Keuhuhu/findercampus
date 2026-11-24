@@ -15,7 +15,7 @@ class ReportImageUploadService
 {
     public const MAX_FILES = 5;
 
-    public const MAX_FILE_BYTES = 5 * 1024 * 1024;
+    public const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
     private const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -35,7 +35,7 @@ class ReportImageUploadService
 
         if (! in_array($mimeType, self::ALLOWED_MIMES, true) || $size < 1 || $size > self::MAX_FILE_BYTES) {
             throw ValidationException::withMessages([
-                'foto' => 'Pilih gambar JPG, PNG, atau WEBP dengan ukuran maksimal 5 MB.',
+                'foto' => 'Pilih gambar JPG, PNG, atau WEBP dengan ukuran maksimal 10 MB.',
             ]);
         }
 
@@ -68,7 +68,7 @@ class ReportImageUploadService
     }
 
     /** @param array<int, string> $uploadIds
-     *  @return array{public_paths: array<int, string>, upload_ids: array<int, string>}
+     * @return array{public_paths: array<int, string>, upload_ids: array<int, string>}
      */
     public function attachToReport(Laporan $laporan, User $user, array $uploadIds): array
     {
@@ -112,7 +112,7 @@ class ReportImageUploadService
                     || $actualMime !== $upload->content_type
                 ) {
                     throw ValidationException::withMessages([
-                        'foto' => 'Foto harus berupa JPG, PNG, atau WEBP dengan ukuran maksimal 5 MB.',
+                        'foto' => 'Foto harus berupa JPG, PNG, atau WEBP dengan ukuran maksimal 10 MB.',
                     ]);
                 }
 

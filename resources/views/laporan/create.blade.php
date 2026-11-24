@@ -181,6 +181,7 @@
                             data-report-photo-uploader
                             data-direct-upload="{{ config('filesystems.upload_driver') === 'supabase_s3' ? 'true' : 'false' }}"
                             data-max-files="5"
+                            data-max-file-bytes="{{ \App\Services\ReportImageUploadService::MAX_FILE_BYTES }}"
                             data-sign-url="{{ route('laporan.upload-urls.store') }}"
                             data-delete-url="{{ route('laporan.upload-urls.destroy', ['upload' => 'UPLOAD_ID']) }}"
                             onclick="document.getElementById('foto_input').click()">
@@ -193,7 +194,13 @@
                                 </span>
                                 <p class="pl-1">atau tarik & lepas file ke sini</p>
                             </div>
-                            <p class="text-xs text-gray-500 mt-2">PNG, JPG, WEBP hingga 5MB</p>
+                            <p class="text-xs text-gray-500 mt-2">
+                                @if(config('filesystems.upload_driver') === 'supabase_s3')
+                                    Foto asli hingga 30 MB akan dioptimasi otomatis, maksimal 10 MB per foto.
+                                @else
+                                    PNG, JPG, WEBP hingga 10 MB per foto.
+                                @endif
+                            </p>
                             
                             <!-- Actual input hidden -->
                             <input id="foto_input" type="file" @if(config('filesystems.upload_driver') !== 'supabase_s3') name="foto[]" @endif multiple accept="image/jpeg,image/png,image/webp" class="sr-only" data-report-photo-input @change="handleFiles">

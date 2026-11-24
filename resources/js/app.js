@@ -67,6 +67,92 @@ document.addEventListener('submit', (event) => {
 });
 
 /* ─── Direct report photo uploads ──────────────────────── */
+const REPORT_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const REPORT_PHOTO_SOURCE_MAX_BYTES = 30 * 1024 * 1024;
+const REPORT_PHOTO_MAX_DIMENSION = 2400;
+
+const formatPhotoSize = (bytes) => (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+
+const optimizeReportPhoto = async (file, maxBytes) => {
+    if (!REPORT_PHOTO_MIME_TYPES.includes(file.type)) {
+        throw new Error('Pilih gambar JPG, PNG, atau WEBP.');
+    }
+
+    if (file.size > REPORT_PHOTO_SOURCE_MAX_BYTES) {
+        throw new Error('Ukuran foto asli maksimal 30 MB.');
+    }
+
+    if (typeof createImageBitmap !== 'function') {
+        if (file.size <= maxBytes) return file;
+        throw new Error('Browser ini tidak mendukung optimasi foto. Pilih foto di bawah 10 MB.');
+    }
+
+    let bitmap;
+
+    try {
+        bitmap = await createImageBitmap(file);
+    } catch {
+        if (file.size <= maxBytes) return file;
+        throw new Error('Foto tidak dapat dioptimasi. Pilih foto lain dengan ukuran di bawah 10 MB.');
+    }
+
+    try {
+        const longestSide = Math.max(bitmap.width, bitmap.height);
+        const needsOptimization = file.size > 3 * 1024 * 1024 || longestSide > REPORT_PHOTO_MAX_DIMENSION;
+
+        if (!needsOptimization) return file;
+
+        const outputType = file.type === 'image/png' ? 'image/webp' : file.type;
+        const attempts = [
+            { maxDimension: REPORT_PHOTO_MAX_DIMENSION, quality: 0.9 },
+            { maxDimension: 2000, quality: 0.84 },
+            { maxDimension: 1600, quality: 0.76 },
+        ];
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        if (!context) {
+            if (file.size <= maxBytes) return file;
+            throw new Error('Foto tidak dapat dioptimasi di browser ini.');
+        }
+
+        for (const attempt of attempts) {
+            const scale = Math.min(1, attempt.maxDimension / longestSide);
+            canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+            canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+            const blob = await new Promise((resolve) => {
+                canvas.toBlob(resolve, outputType, attempt.quality);
+            });
+
+            if (!blob || !REPORT_PHOTO_MIME_TYPES.includes(blob.type)) continue;
+            if (blob.size > maxBytes) continue;
+            if (blob.size >= file.size && file.size <= maxBytes) return file;
+
+            const extensionByMime = {
+                'image/jpeg': 'jpg',
+                'image/png': 'png',
+                'image/webp': 'webp',
+            };
+            const baseName = file.name.replace(/\.[^.]+$/, '');
+            const optimizedName = baseName + '.' + extensionByMime[blob.type];
+
+            return new File([blob], optimizedName, {
+                type: blob.type,
+                lastModified: file.lastModified,
+            });
+        }
+
+        if (file.size <= maxBytes) return file;
+
+        throw new Error('Foto tetap lebih besar dari 10 MB setelah dioptimasi. Pilih foto lain.');
+    } finally {
+        bitmap.close();
+    }
+};
+
 document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true"]').forEach((uploader) => {
     const form = uploader.closest('form');
     const input = uploader.querySelector('[data-report-photo-input]');
@@ -75,6 +161,7 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
     const status = uploader.querySelector('[data-photo-upload-status]');
     const previews = uploader.parentElement.querySelector('[data-photo-preview-grid]');
     const maxFiles = Number(uploader.dataset.maxFiles || 5);
+    const maxFileBytes = Number(uploader.dataset.maxFileBytes || 10 * 1024 * 1024);
     const initialExisting = Number(uploader.dataset.existingFiles || 0);
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
     const pendingUploads = new Set();
@@ -161,8 +248,8 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
         }
 
         for (const file of selectedFiles) {
-            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-                reportStatus('Pilih gambar JPG, PNG, atau WEBP dengan ukuran maksimal 5 MB.', true);
+            if (!REPORT_PHOTO_MIME_TYPES.includes(file.type) || file.size > REPORT_PHOTO_SOURCE_MAX_BYTES) {
+                reportStatus('Pilih gambar JPG, PNG, atau WEBP dengan ukuran foto asli maksimal 30 MB.', true);
                 continue;
             }
 
@@ -180,11 +267,17 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
             removeButton.textContent = 'Batalkan';
             row.append(label, removeButton);
             items.append(row);
-            createPreview(file, previewId);
             pendingUploads.add(row);
             refreshStatus();
 
             try {
+                const uploadFile = await optimizeReportPhoto(file, maxFileBytes);
+                const optimizationNotice = uploadFile.size < file.size
+                    ? ' (dioptimasi dari ' + formatPhotoSize(file.size) + ' menjadi ' + formatPhotoSize(uploadFile.size) + ')'
+                    : '';
+                createPreview(uploadFile, previewId);
+                label.textContent = file.name + ' sedang diunggah' + optimizationNotice;
+
                 const signResponse = await fetch(uploader.dataset.signUrl, {
                     method: 'POST',
                     headers: {
@@ -192,7 +285,7 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': csrfToken,
                     },
-                    body: JSON.stringify({ content_type: file.type, size: file.size }),
+                    body: JSON.stringify({ content_type: uploadFile.type, size: uploadFile.size }),
                 });
 
                 if (!signResponse.ok) throw new Error('Tidak dapat menyiapkan unggahan foto.');
@@ -201,7 +294,7 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
                 const uploadResponse = await fetch(signedUpload.url, {
                     method: 'PUT',
                     headers: signedUpload.headers,
-                    body: file,
+                    body: uploadFile,
                 });
 
                 if (!uploadResponse.ok) throw new Error('Foto gagal diunggah ke penyimpanan. Coba lagi.');
@@ -269,6 +362,101 @@ document.querySelectorAll('[data-report-photo-uploader][data-direct-upload="true
 });
 
 // Re-run after Alpine finishes rendering
+document.querySelectorAll('[data-report-gallery]').forEach((gallery) => {
+    const mainImage = gallery.querySelector('[data-gallery-main]');
+    const thumbnails = [...gallery.querySelectorAll('[data-gallery-thumbnail]')];
+    const counter = gallery.querySelector('[data-gallery-counter]');
+
+    if (!mainImage || thumbnails.length < 2) return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let activeIndex = Math.max(0, thumbnails.findIndex((button) => button.getAttribute('aria-pressed') === 'true'));
+    let selectionRequest = 0;
+
+    const setActivePhoto = (index) => {
+        activeIndex = index;
+        thumbnails.forEach((button, buttonIndex) => {
+            button.setAttribute('aria-pressed', buttonIndex === index ? 'true' : 'false');
+        });
+        mainImage.alt = thumbnails[index].dataset.imageAlt || mainImage.alt;
+
+        if (counter) {
+            counter.textContent = (index + 1) + ' dari ' + thumbnails.length + ' foto';
+        }
+    };
+
+    const showPhoto = (index) => {
+        const request = ++selectionRequest;
+
+        if (index === activeIndex) {
+            mainImage.classList.remove('report-gallery__main-image--switching');
+            return;
+        }
+
+        const thumbnail = thumbnails[index];
+        const nextSource = thumbnail.dataset.imageUrl;
+        const preloadedImage = new Image();
+        let hasLoaded = false;
+
+        const switchImage = () => {
+            if (hasLoaded || request !== selectionRequest) return;
+            hasLoaded = true;
+            mainImage.classList.add('report-gallery__main-image--switching');
+
+            const updateImage = () => {
+                if (request !== selectionRequest) return;
+
+                mainImage.src = nextSource;
+                setActivePhoto(index);
+                window.requestAnimationFrame(() => {
+                    mainImage.classList.remove('report-gallery__main-image--switching');
+                });
+            };
+
+            if (prefersReducedMotion) {
+                updateImage();
+            } else {
+                window.setTimeout(updateImage, 110);
+            }
+        };
+
+        preloadedImage.onload = switchImage;
+        preloadedImage.onerror = () => {
+            if (request === selectionRequest) {
+                mainImage.classList.remove('report-gallery__main-image--switching');
+            }
+        };
+        preloadedImage.src = nextSource;
+
+        if (preloadedImage.complete && preloadedImage.naturalWidth > 0) {
+            switchImage();
+        }
+    };
+
+    thumbnails.forEach((button, index) => {
+        button.addEventListener('click', () => showPhoto(index));
+
+        if (!prefersReducedMotion) {
+            button.style.setProperty('--gallery-delay', (index * 55) + 'ms');
+        }
+    });
+
+    gallery.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+
+        event.preventDefault();
+        const direction = event.key === 'ArrowRight' ? 1 : -1;
+        const nextIndex = (activeIndex + direction + thumbnails.length) % thumbnails.length;
+        showPhoto(nextIndex);
+    });
+
+    setActivePhoto(activeIndex);
+
+    if (!prefersReducedMotion) {
+        gallery.classList.add('report-gallery--enhanced');
+    }
+});
+
 document.addEventListener('alpine:initialized', () => {
     document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
 });

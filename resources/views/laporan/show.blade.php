@@ -27,28 +27,62 @@
             
             <!-- Main Card -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <!-- Gallery (Simple for now, just shows first/primary image large, and others small) -->
                 @if($laporan->fotos->count() > 0)
-                    <div class="w-full h-72 sm:h-96 bg-gray-100 relative group">
-                        @php $primary = $laporan->fotoUtama() ?? $laporan->fotos->first(); @endphp
-                        <img src="@mediaUrl($primary->file_path)" class="w-full h-full object-cover">
-                        
-                        <div class="absolute top-4 left-4">
-                            <x-status-badge :status="$laporan->status" />
+                    @php
+                        $galleryPhotos = $laporan->fotos->values();
+                        $primary = $laporan->fotoUtama() ?? $galleryPhotos->first();
+                        $primaryIndex = $galleryPhotos->search(fn ($foto) => $foto->id === $primary->id) + 1;
+                    @endphp
+                    <div
+                        class="report-gallery"
+                        data-report-gallery
+                        role="region"
+                        tabindex="0"
+                        aria-label="Galeri foto {{ $laporan->nama_barang }}"
+                    >
+                        <div class="report-gallery__stage">
+                            <img
+                                src="@mediaUrl($primary->file_path)"
+                                alt="Foto {{ $primaryIndex }} dari {{ $galleryPhotos->count() }} untuk {{ $laporan->nama_barang }}"
+                                class="report-gallery__main-image"
+                                data-gallery-main
+                                fetchpriority="high"
+                            >
+                            <div class="report-gallery__badge report-gallery__badge--status">
+                                <x-status-badge :status="$laporan->status" />
+                            </div>
+                            <div class="report-gallery__badge report-gallery__badge--code">
+                                {{ $laporan->kode_laporan }}
+                            </div>
+                            <div class="report-gallery__counter" data-gallery-counter aria-live="polite">
+                                {{ $primaryIndex }} dari {{ $galleryPhotos->count() }} foto
+                            </div>
                         </div>
-                        <div class="absolute top-4 right-4 bg-gray-900/80 backdrop-blur text-white px-3 py-1 rounded-lg text-sm font-semibold border border-gray-700">
-                            {{ $laporan->kode_laporan }}
-                        </div>
+
+                        @if($galleryPhotos->count() > 1)
+                            <div class="report-gallery__thumbnails" role="group" aria-label="Pilih foto barang">
+                                @foreach($galleryPhotos as $index => $foto)
+                                    @php $isActivePhoto = $foto->id === $primary->id; @endphp
+                                    <button
+                                        type="button"
+                                        class="report-gallery__thumbnail"
+                                        data-gallery-thumbnail
+                                        data-image-url="@mediaUrl($foto->file_path)"
+                                        data-image-alt="Foto {{ $index + 1 }} untuk {{ $laporan->nama_barang }}"
+                                        aria-label="Tampilkan foto {{ $index + 1 }} dari {{ $galleryPhotos->count() }}"
+                                        aria-pressed="{{ $isActivePhoto ? 'true' : 'false' }}"
+                                    >
+                                        <img
+                                            src="@mediaUrl($foto->file_path)"
+                                            alt=""
+                                            loading="lazy"
+                                            decoding="async"
+                                        >
+                                    </button>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
-                    @if($laporan->fotos->count() > 1)
-                        <div class="flex gap-2 p-4 bg-gray-50 border-b border-gray-200 overflow-x-auto">
-                            @foreach($laporan->fotos as $foto)
-                                <div class="w-20 h-20 rounded-lg overflow-hidden border-2 {{ $foto->is_primary ? 'border-primary' : 'border-transparent' }} shrink-0">
-                                    <img src="@mediaUrl($foto->file_path)" class="w-full h-full object-cover">
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
                 @else
                     <div class="w-full h-48 bg-gray-100 flex flex-col items-center justify-center border-b border-gray-200">
                         <svg class="w-12 h-12 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
