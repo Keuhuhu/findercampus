@@ -23,6 +23,20 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        VerifyEmail::createUrlUsing(static function ($user): string {
+            $relativeUrl = URL::temporarySignedRoute(
+                'verification.verify',
+                now()->addMinutes(config('auth.verification.expire', 60)),
+                [
+                    'id' => $user->getKey(),
+                    'hash' => sha1($user->getEmailForVerification()),
+                ],
+                absolute: false,
+            );
+
+            return URL::to($relativeUrl);
+        });
+
         VerifyEmail::toMailUsing(static function ($user, string $verificationUrl): MailMessage {
             return (new MailMessage)
                 ->subject('Verifikasi email FinderCampus')

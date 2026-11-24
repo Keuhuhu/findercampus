@@ -101,6 +101,66 @@ class LaporanControllerTest extends TestCase
             ->assertSee("tipe: 'ditemukan'", false);
     }
 
+    public function test_public_qr_page_only_exposes_safe_information_for_active_found_reports(): void
+    {
+        $this->withoutVite();
+        $owner = User::factory()->create([
+            'name' => 'Nama Pelapor Privat',
+            'whatsapp' => '08123456789',
+            'whatsapp_visible' => true,
+        ]);
+        $report = $this->createReport($owner, [
+            'qr_code_path' => 'qrcodes/report.svg',
+            'detail_lokasi' => 'Lokasi detail privat',
+            'ciri_khusus' => 'Ciri khusus privat',
+            'deskripsi' => 'Deskripsi privat',
+        ]);
+
+        $this->get(route('laporan.qr.public', $report))
+            ->assertOk()
+            ->assertSee($report->nama_barang)
+            ->assertSee($report->kategori->nama)
+            ->assertSee($report->kode_laporan)
+            ->assertSee($report->lokasi->nama)
+            ->assertDontSee('Nama Pelapor Privat')
+            ->assertDontSee('08123456789')
+            ->assertDontSee('Lokasi detail privat')
+            ->assertDontSee('Ciri khusus privat')
+            ->assertDontSee('Deskripsi privat');
+    }
+
+    public function test_public_qr_page_does_not_show_lost_archived_or_non_qr_reports(): void
+    {
+        $lostReport = $this->createReport(null, [
+            'tipe' => 'hilang',
+            'qr_code_path' => 'qrcodes/lost.svg',
+        ]);
+        $archivedReport = $this->createReport(null, ['qr_code_path' => 'qrcodes/archived.svg']);
+        $archivedReport->delete();
+        $reportWithoutQr = $this->createReport();
+
+        $this->get(route('laporan.qr.public', $lostReport))->assertNotFound();
+        $this->get(route('laporan.qr.public', $archivedReport->id))->assertNotFound();
+        $this->get(route('laporan.qr.public', $reportWithoutQr))->assertNotFound();
+    }
+
+    public function test_qr_preview_and_download_generate_current_public_destination(): void
+    {
+        $owner = User::factory()->create();
+        $report = $this->createReport($owner, ['qr_code_path' => 'qrcodes/report.svg']);
+
+        $this->actingAs($owner)
+            ->get(route('laporan.qr.image', $report))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/svg+xml; charset=UTF-8')
+            ->assertSee('<svg xmlns=', false);
+
+        $this->get(route('laporan.qr', $report))
+            ->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename="QR_'.$report->kode_laporan.'.svg"')
+            ->assertSee('<svg xmlns=', false);
+    }
+
     public function test_admin_can_edit_other_users_report_photos_and_archive_then_restore_without_losing_claims(): void
     {
         $this->withoutVite();
@@ -180,8 +240,7 @@ class LaporanControllerTest extends TestCase
         $uploadService->shouldReceive('supportsSignedUploads')->once()->andReturn(true);
         $uploadService->shouldReceive('createSignedUpload')
             ->once()
-            ->withArgs(fn (User $requestedUser, string $mimeType, int $size): bool =>
-                $requestedUser->is($user) && $mimeType === 'image/jpeg' && $size === 1024)
+            ->withArgs(fn (User $requestedUser, string $mimeType, int $size): bool => $requestedUser->is($user) && $mimeType === 'image/jpeg' && $size === 1024)
             ->andReturn([
                 'id' => '8a22d385-fac0-48a8-9e90-e154880c4c26',
                 'url' => 'https://project.storage.supabase.co/upload/signed',

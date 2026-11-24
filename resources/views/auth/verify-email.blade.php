@@ -19,6 +19,7 @@
             Kami mengirim tautan verifikasi ke <strong class="text-gray-800">{{ Auth::user()->email }}</strong>.
             Buka email tersebut lalu klik tombol verifikasi. Tautan berlaku selama {{ config('auth.verification.expire', 60) }} menit.
         </p>
+        <p class="mt-2 text-sm font-medium text-amber-700">Jangan lupa periksa folder Spam atau Junk jika email belum terlihat di kotak masuk.</p>
 
         @if($verificationLinkExpired ?? false)
             <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800" role="alert">

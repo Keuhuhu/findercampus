@@ -193,7 +193,7 @@
                 <p class="text-xs text-gray-500 mb-4">Tempelkan QR Code ini pada barang saat diserahkan ke posko.</p>
                 
                 <div class="inline-block p-2 border-2 border-gray-100 rounded-xl mb-4">
-                    <img src="@mediaUrl($laporan->qr_code_path)" alt="QR Code" class="w-40 h-40">
+                    <img src="{{ route('laporan.qr.image', $laporan) }}" alt="QR Code" class="w-40 h-40">
                 </div>
                 
                 @if(Auth::user()->isAdmin() || Auth::id() === $laporan->user_id)

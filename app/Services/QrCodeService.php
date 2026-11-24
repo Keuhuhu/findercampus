@@ -12,19 +12,21 @@ class QrCodeService
 
     public function generate(Laporan $laporan): string
     {
-        $url = url('/laporan/'.$laporan->id);
         $filename = 'qrcodes/'.$laporan->kode_laporan.'.svg';
 
-        $qrImage = QrCode::format('svg')
-            ->size(300)
-            ->margin(1)
-            ->color(27, 46, 88)
-            ->generate($url);
-
-        if (! $this->assetStorage->putPublic($filename, $qrImage, 'image/svg+xml')) {
+        if (! $this->assetStorage->putPublic($filename, $this->svg($laporan), 'image/svg+xml')) {
             throw new RuntimeException('QR Code gagal disimpan.');
         }
 
         return $filename;
+    }
+
+    public function svg(Laporan $laporan): string
+    {
+        return QrCode::format('svg')
+            ->size(300)
+            ->margin(1)
+            ->color(27, 46, 88)
+            ->generate(route('laporan.qr.public', $laporan));
     }
 }

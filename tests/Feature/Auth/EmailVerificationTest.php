@@ -27,10 +27,11 @@ class EmailVerificationTest extends TestCase
             'verification.verify',
             now()->addMinutes(60),
             ['id' => $user->id, 'hash' => sha1($user->email)],
+            absolute: false,
         );
 
         $this->actingAs($user)
-            ->get($verificationUrl)
+            ->get(URL::to($verificationUrl))
             ->assertRedirect(route('dashboard'));
 
         $user->refresh();
@@ -38,6 +39,25 @@ class EmailVerificationTest extends TestCase
         $this->assertNotNull($user->email_verified_at);
         $this->assertFalse($user->is_verified);
         $this->get(route('dashboard'))->assertOk();
+    }
+
+    public function test_valid_verification_link_works_on_a_different_host(): void
+    {
+        $user = User::factory()->requiresEmailVerification()->create();
+        $relativeUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $user->id, 'hash' => sha1($user->email)],
+            absolute: false,
+        );
+        $verificationUrl = URL::to($relativeUrl);
+        $verificationUrl = preg_replace('#^https?://[^/]+#', 'https://findercampus.vercel.app', $verificationUrl);
+
+        $this->actingAs($user)
+            ->get($verificationUrl)
+            ->assertRedirect(route('dashboard'));
+
+        $this->assertNotNull($user->fresh()->email_verified_at);
     }
 
     public function test_new_unverified_account_is_redirected_to_notice_but_can_edit_profile(): void
@@ -94,10 +114,11 @@ class EmailVerificationTest extends TestCase
             'verification.verify',
             now()->subMinute(),
             ['id' => $user->id, 'hash' => sha1($user->email)],
+            absolute: false,
         );
 
         $this->actingAs($user)
-            ->get($verificationUrl)
+            ->get(URL::to($verificationUrl))
             ->assertForbidden()
             ->assertViewIs('auth.verify-email')
             ->assertViewHas('verificationLinkExpired', true);
@@ -110,8 +131,9 @@ class EmailVerificationTest extends TestCase
             'verification.verify',
             now()->addMinutes(60),
             ['id' => $user->id, 'hash' => sha1($user->email)],
+            absolute: false,
         );
-        $tamperedUrl = $verificationUrl.'&signature=invalid';
+        $tamperedUrl = URL::to($verificationUrl).'&signature=invalid';
 
         $this->actingAs($user)
             ->get($tamperedUrl)

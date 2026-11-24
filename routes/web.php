@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Route;
 
 // Halaman Utama (Landing Page)
 Route::get('/', [LandingController::class, 'index'])->name('landing');
+Route::get('/qr/laporan/{id}', [LaporanController::class, 'showPublicQr'])
+    ->whereNumber('id')
+    ->name('laporan.qr.public');
 
 // Auth Routes (Guest)
 Route::middleware('guest')->group(function () {
@@ -33,7 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/email/verify', [EmailVerificationController::class, 'notice'])->name('verification.notice');
     Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
-        ->middleware('signed')
+        ->middleware('signed:relative')
         ->name('verification.verify');
     Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:6,1')
@@ -57,6 +60,7 @@ Route::middleware(['auth', 'new-account-email-verified'])->group(function () {
     Route::put('/laporan/{id}', [LaporanController::class, 'update'])->name('laporan.update');
     Route::delete('/laporan/{id}', [LaporanController::class, 'destroy'])->name('laporan.destroy');
     Route::get('/laporan/{id}/qr', [LaporanController::class, 'downloadQr'])->name('laporan.qr');
+    Route::get('/laporan/{id}/qr/image', [LaporanController::class, 'qrImage'])->name('laporan.qr.image');
     Route::get('/pencarian', [PencarianController::class, 'index'])->name('pencarian.index');
     Route::get('/klaim/buat/{laporan}', [KlaimController::class, 'create'])->name('klaim.create');
     Route::post('/klaim', [KlaimController::class, 'store'])->name('klaim.store');

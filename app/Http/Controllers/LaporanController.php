@@ -13,6 +13,7 @@ use App\Services\ReportImageUploadService;
 use App\Services\SmartMatchingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -176,6 +177,18 @@ class LaporanController extends Controller
         return view('laporan.show', compact('laporan'));
     }
 
+    public function showPublicQr(int $id): View
+    {
+        $laporan = Laporan::query()
+            ->where('tipe', 'ditemukan')
+            ->where('status', 'aktif')
+            ->whereNotNull('qr_code_path')
+            ->with(['fotos', 'kategori', 'lokasi'])
+            ->findOrFail($id);
+
+        return view('laporan.public-qr', compact('laporan'));
+    }
+
     public function edit(int $id): View
     {
         $laporan = Laporan::with('fotos')->findOrFail($id);
@@ -284,7 +297,7 @@ class LaporanController extends Controller
             ->with('success', 'Laporan berhasil diarsipkan.');
     }
 
-    public function downloadQr(int $id, AssetStorage $assetStorage)
+    public function qrImage(int $id, QrCodeService $qrCodeService): Response
     {
         $query = Auth::user()->isAdmin() ? Laporan::withTrashed() : Laporan::query();
         $laporan = $query->findOrFail($id);
@@ -294,7 +307,30 @@ class LaporanController extends Controller
             abort(404, 'QR Code tidak ditemukan.');
         }
 
-        return $assetStorage->downloadPublic($laporan->qr_code_path, 'QR_'.$laporan->kode_laporan.'.svg');
+        return response($qrCodeService->svg($laporan), Response::HTTP_OK, [
+            'Content-Type' => 'image/svg+xml; charset=UTF-8',
+            'Content-Disposition' => 'inline; filename="QR_'.$laporan->kode_laporan.'.svg"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    public function downloadQr(int $id, QrCodeService $qrCodeService): Response
+    {
+        $query = Auth::user()->isAdmin() ? Laporan::withTrashed() : Laporan::query();
+        $laporan = $query->findOrFail($id);
+        $this->authorizeReportManagement($laporan);
+
+        if ($laporan->tipe !== 'ditemukan' || ! $laporan->qr_code_path) {
+            abort(404, 'QR Code tidak ditemukan.');
+        }
+
+        return response($qrCodeService->svg($laporan), Response::HTTP_OK, [
+            'Content-Type' => 'image/svg+xml; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="QR_'.$laporan->kode_laporan.'.svg"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     private function authorizeReportManagement(Laporan $laporan): void
