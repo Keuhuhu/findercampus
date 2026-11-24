@@ -26,6 +26,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->view('auth.email-verification-result', ['verified' => false], 403);
             }
 
+            if ($request->routeIs('verification.campus')) {
+                return response()->view('auth.campus-email-verification-result', ['verified' => false], 403);
+            }
+
             return null;
         });
 

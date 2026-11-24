@@ -16,7 +16,8 @@
 
             <h2>2. Pendaftaran Akun</h2>
             <ul>
-                <li>Pengguna wajib mendaftar menggunakan identitas asli (Nama, NIM/NIP, Email Kampus).</li>
+                <li>Pengguna wajib mendaftar menggunakan identitas asli (Nama dan NIM/NIP) serta alamat email aktif yang dapat diakses.</li>
+                <li>Email Unsri dapat diverifikasi secara terpisah untuk memperoleh lencana identitas kampus; alamat tersebut tidak menggantikan email utama akun.</li>
                 <li>Setiap pengguna hanya diperkenankan memiliki satu akun.</li>
                 <li>Akun yang terverifikasi memiliki akses penuh ke seluruh fitur layanan.</li>
                 <li>Penyalahgunaan akun dapat berakibat pemblokiran permanen.</li>

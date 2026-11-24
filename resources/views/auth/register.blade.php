@@ -55,13 +55,14 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label for="email" class="block text-sm font-semibold text-gray-700 mb-1.5">Email Kampus</label>
+                    <label for="email" class="block text-sm font-semibold text-gray-700 mb-1.5">Email Akun</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                         </div>
-                        <input type="email" id="email" name="email" value="{{ old('email') }}" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border {{ $errors->has('email') ? 'border-red-300' : 'border-gray-200 focus:border-amber-500' }} rounded-lg text-sm focus:outline-none focus:ring-4 focus:ring-amber-500/20 transition" placeholder="nama@campus.ac.id" required>
+                        <input type="email" id="email" name="email" value="{{ old('email') }}" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border {{ $errors->has('email') ? 'border-red-300' : 'border-gray-200 focus:border-amber-500' }} rounded-lg text-sm focus:outline-none focus:ring-4 focus:ring-amber-500/20 transition" placeholder="nama@email.com" required>
                     </div>
+                    <p class="mt-1 text-xs text-gray-500">Email ini digunakan untuk akun Anda. Verifikasi email Unsri untuk lencana dilakukan terpisah dari profil.</p>
                     @error('email')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>

@@ -26,6 +26,10 @@ Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 've
     ->whereNumber('id')
     ->middleware('signed:relative')
     ->name('verification.verify');
+Route::get('/email/verify-campus/{verification}/{hash}', [EmailVerificationController::class, 'verifyCampusEmail'])
+    ->whereNumber('verification')
+    ->middleware('signed:relative')
+    ->name('verification.campus');
 
 // Auth Routes (Guest)
 Route::middleware('guest')->group(function () {
@@ -43,6 +47,12 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:6,1')
         ->name('verification.send');
     Route::get('/profil', [ProfilController::class, 'show'])->name('profil.show');
+    Route::post('/profil/verifikasi-kampus', [ProfilController::class, 'requestCampusEmailVerification'])
+        ->middleware('throttle:6,1')
+        ->name('profil.campus-verification.send');
+    Route::post('/profil/verifikasi-kampus/kirim-ulang', [ProfilController::class, 'resendCampusEmailVerification'])
+        ->middleware('throttle:6,1')
+        ->name('profil.campus-verification.resend');
     Route::get('/profil/edit', [ProfilController::class, 'edit'])->name('profil.edit');
     Route::put('/profil', [ProfilController::class, 'update'])->name('profil.update');
     Route::post('/profil/avatar', [ProfilController::class, 'updateAvatar'])->name('profil.avatar');

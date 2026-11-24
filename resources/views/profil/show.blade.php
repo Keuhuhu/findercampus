@@ -1,4 +1,9 @@
 <x-app-layout>
+    @php
+        $verifiedCampusEmail = $user->campusEmailVerifications->firstWhere('status', 'verified');
+        $pendingCampusEmail = $user->campusEmailVerifications->firstWhere('status', 'pending');
+    @endphp
+
     <x-slot name="breadcrumb">
         <x-breadcrumb :breadcrumbs="['Profil Saya' => '#']" />
     </x-slot>
@@ -17,6 +22,18 @@
     @if(session('status') === 'verification-link-sent')
         <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800" role="status">
             Tautan verifikasi email sudah dikirim. Periksa kotak masuk atau folder spam Anda.
+        </div>
+    @endif
+
+    @if(session('campus-verification-link-sent'))
+        <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800" role="status">
+            Tautan verifikasi sudah dikirim ke email kampus. Periksa kotak masuk atau folder Spam/Junk.
+        </div>
+    @endif
+
+    @if(session('campus-verification-mail-error'))
+        <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800" role="alert">
+            {{ session('campus-verification-mail-error') }}
         </div>
     @endif
 
@@ -39,7 +56,7 @@
                             {{ substr($user->name, 0, 1) }}
                         </div>
                     @endif
-                    @if($user->is_verified)
+                    @if($verifiedCampusEmail)
                         <div class="absolute -bottom-1 -right-1 bg-accent rounded-full p-1">
                             <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
                         </div>
@@ -56,9 +73,9 @@
                 </form>
 
                 <h2 class="text-lg font-bold text-gray-900">{{ $user->name }}</h2>
-                @if($user->is_verified)
+                @if($verifiedCampusEmail)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-accent border border-blue-100 mt-1">
-                        ✅ Identitas Kampus Terverifikasi · {{ $user->fakultas }}
+                        ✅ Email Unsri Terverifikasi
                     </span>
                 @endif
 
@@ -139,7 +156,7 @@
                         <dd class="mt-1 text-sm text-gray-900 font-semibold">{{ $user->nim_nip ?? '-' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-xs text-gray-500 font-medium uppercase tracking-wider">Email Kampus</dt>
+                        <dt class="text-xs text-gray-500 font-medium uppercase tracking-wider">Email Akun</dt>
                         <dd class="mt-1 text-sm text-gray-900 font-semibold">{{ $user->email }}</dd>
                     </div>
                     <div>
@@ -157,15 +174,83 @@
                             @endif
                         </dd>
                     </div>
-                    <div>
+                    <div x-data="{ campusVerificationModalOpen: @js($errors->has('campus_email')) }">
                         <dt class="text-xs text-gray-500 font-medium uppercase tracking-wider">Verifikasi Identitas Kampus</dt>
                         <dd class="mt-1 text-sm font-semibold">
-                            @if($user->is_verified)
-                                <span class="text-emerald-600">✅ Terverifikasi</span>
+                            @if($verifiedCampusEmail)
+                                <span class="text-emerald-600">Email Unsri Terverifikasi</span>
+                                <p class="mt-1 text-xs font-normal text-gray-600">{{ $verifiedCampusEmail->email }}</p>
+                            @elseif($pendingCampusEmail)
+                                <span class="text-amber-600">Menunggu Verifikasi</span>
+                                <p class="mt-1 text-xs font-normal text-gray-600">Tautan dikirim ke {{ $pendingCampusEmail->email }}</p>
                             @else
-                                <span class="text-amber-600">⏳ Menunggu Verifikasi</span>
+                                <span class="text-gray-500">Belum diverifikasi</span>
                             @endif
+
+                            @if($pendingCampusEmail)
+                                @if($verifiedCampusEmail)
+                                    <p class="mt-2 text-xs font-normal text-gray-500">Lencana saat ini tetap aktif sampai email pengganti dikonfirmasi.</p>
+                                @endif
+                                <form method="POST" action="{{ route('profil.campus-verification.resend') }}" class="mt-2">
+                                    @csrf
+                                    <button type="submit" class="text-xs font-semibold text-blue-700 underline hover:text-blue-900">Kirim ulang tautan</button>
+                                </form>
+                            @endif
+
+                            <button
+                                type="button"
+                                @click="campusVerificationModalOpen = true"
+                                class="mt-2 block text-xs font-semibold text-blue-700 underline hover:text-blue-900"
+                            >
+                                {{ $verifiedCampusEmail ? 'Ganti email kampus' : ($pendingCampusEmail ? 'Ganti email yang menunggu' : 'Verifikasi email kampus') }}
+                            </button>
                         </dd>
+
+                        <div
+                            x-cloak
+                            x-show="campusVerificationModalOpen"
+                            x-transition.opacity
+                            @keydown.escape.window="campusVerificationModalOpen = false"
+                            class="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/60 p-4"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="campus-verification-title"
+                        >
+                            <div @click.outside="campusVerificationModalOpen = false" class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-7">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <h3 id="campus-verification-title" class="text-lg font-bold text-gray-900">Verifikasi Email Kampus</h3>
+                                        <p class="mt-1 text-sm leading-6 text-gray-600">Email utama akun Anda tidak berubah. Masukkan email Unsri untuk menerima tautan verifikasi lencana.</p>
+                                    </div>
+                                    <button type="button" @click="campusVerificationModalOpen = false" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Tutup">Tutup</button>
+                                </div>
+
+                                <form method="POST" action="{{ route('profil.campus-verification.send') }}" class="mt-5 space-y-4">
+                                    @csrf
+                                    <div>
+                                        <label for="campus_email" class="mb-1 block text-sm font-semibold text-gray-700">Email kampus</label>
+                                        <input
+                                            id="campus_email"
+                                            name="campus_email"
+                                            type="email"
+                                            value="{{ old('campus_email', $pendingCampusEmail?->email) }}"
+                                            placeholder="nim@student.unsri.ac.id"
+                                            autocomplete="email"
+                                            required
+                                            class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100"
+                                        >
+                                        @error('campus_email')
+                                            <p class="mt-1 text-xs font-normal text-red-600">{{ $message }}</p>
+                                        @enderror
+                                        <p class="mt-2 text-xs font-normal text-gray-500">Domain yang diterima: student.unsri.ac.id, unsri.ac.id, dan ilkom.unsri.ac.id.</p>
+                                    </div>
+                                    <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                        <button type="button" @click="campusVerificationModalOpen = false" class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">Batal</button>
+                                        <button type="submit" class="rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800">Kirim tautan verifikasi</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <dt class="text-xs text-gray-500 font-medium uppercase tracking-wider">Verifikasi Email</dt>
