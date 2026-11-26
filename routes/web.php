@@ -22,6 +22,9 @@ Route::get('/', [LandingController::class, 'index'])->name('landing');
 Route::get('/qr/laporan/{id}', [LaporanController::class, 'showPublicQr'])
     ->whereNumber('id')
     ->name('laporan.qr.public');
+Route::get('/laporan/{id}/qr/image', [LaporanController::class, 'qrImage'])
+    ->whereNumber('id')
+    ->name('laporan.qr.image');
 Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
     ->whereNumber('id')
     ->middleware('signed:relative')
@@ -71,7 +74,6 @@ Route::middleware(['auth', 'new-account-email-verified'])->group(function () {
     Route::put('/laporan/{id}', [LaporanController::class, 'update'])->name('laporan.update');
     Route::delete('/laporan/{id}', [LaporanController::class, 'destroy'])->name('laporan.destroy');
     Route::get('/laporan/{id}/qr', [LaporanController::class, 'downloadQr'])->name('laporan.qr');
-    Route::get('/laporan/{id}/qr/image', [LaporanController::class, 'qrImage'])->name('laporan.qr.image');
     Route::get('/pencarian', [PencarianController::class, 'index'])->name('pencarian.index');
     Route::get('/klaim/buat/{laporan}', [KlaimController::class, 'create'])->name('klaim.create');
     Route::post('/klaim', [KlaimController::class, 'store'])->name('klaim.store');

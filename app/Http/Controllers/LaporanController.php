@@ -299,18 +299,16 @@ class LaporanController extends Controller
 
     public function qrImage(int $id, QrCodeService $qrCodeService): Response
     {
-        $query = Auth::user()->isAdmin() ? Laporan::withTrashed() : Laporan::query();
-        $laporan = $query->findOrFail($id);
-        $this->authorizeReportManagement($laporan);
-
-        if ($laporan->tipe !== 'ditemukan' || ! $laporan->qr_code_path) {
-            abort(404, 'QR Code tidak ditemukan.');
-        }
+        $laporan = Laporan::query()
+            ->where('tipe', 'ditemukan')
+            ->where('status', 'aktif')
+            ->whereNotNull('qr_code_path')
+            ->findOrFail($id);
 
         return response($qrCodeService->svg($laporan), Response::HTTP_OK, [
             'Content-Type' => 'image/svg+xml; charset=UTF-8',
             'Content-Disposition' => 'inline; filename="QR_'.$laporan->kode_laporan.'.svg"',
-            'Cache-Control' => 'private, no-store',
+            'Cache-Control' => 'public, max-age=3600',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }
