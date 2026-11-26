@@ -47,7 +47,7 @@
             </ul>
 
             <h2>6. Kontak</h2>
-            <p>Untuk pertanyaan terkait privasi data, hubungi: <strong>lostfound@campus.ac.id</strong></p>
+            <p>Untuk pertanyaan terkait privasi data, hubungi: <strong>findercampus.verif@gmail.com</strong></p>
         </div>
     </div>
 </x-app-layout>
